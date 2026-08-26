@@ -19,6 +19,8 @@ export default function TicketDetailPage() {
   const ticket = tickets.find((t) => t.id === params.id);
   const [status, setStatus] = useState<TicketStatus | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!ticket) {
     return (
@@ -30,10 +32,19 @@ export default function TicketDetailPage() {
 
   const currentStatus = status ?? ticket.status;
 
-  function handleSave() {
-    if (currentStatus !== ticket!.status) updateTicketStatus(ticket!.id, currentStatus);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2500);
+  async function handleSave() {
+    if (currentStatus === ticket!.status) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateTicketStatus(ticket!.id, currentStatus);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError("Couldn't save — check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -91,9 +102,10 @@ export default function TicketDetailPage() {
           </select>
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--status-good)]">
@@ -101,6 +113,7 @@ export default function TicketDetailPage() {
               Saved
             </span>
           )}
+          {saveError && <span className="text-sm font-medium text-[var(--status-critical)]">{saveError}</span>}
         </div>
       </Card>
 

@@ -33,6 +33,7 @@ export default function SdlcSystemPage() {
   const system = getSourceSystem("sdlc");
   const { activities, addActivity } = useSdlcActivities();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   return (
     <SystemPageShell>
@@ -104,10 +105,19 @@ export default function SdlcSystemPage() {
 
       {showAddForm && (
         <AddSdlcModal
-          onClose={() => setShowAddForm(false)}
-          onSubmit={(activity) => {
-            addActivity(activity);
+          error={addError}
+          onClose={() => {
+            setAddError(null);
             setShowAddForm(false);
+          }}
+          onSubmit={async (activity) => {
+            setAddError(null);
+            try {
+              await addActivity(activity);
+              setShowAddForm(false);
+            } catch {
+              setAddError("Couldn't save this activity — check your connection and try again.");
+            }
           }}
         />
       )}
@@ -116,11 +126,13 @@ export default function SdlcSystemPage() {
 }
 
 function AddSdlcModal({
+  error,
   onClose,
   onSubmit,
 }: {
+  error: string | null;
   onClose: () => void;
-  onSubmit: (activity: SdlcActivity) => void;
+  onSubmit: (activity: SdlcActivity) => Promise<void>;
 }) {
   const [application, setApplication] = useState("");
   const [activity, setActivity] = useState("");
@@ -132,6 +144,7 @@ function AddSdlcModal({
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [relatedMilestone, setRelatedMilestone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/40 px-4 py-8">
@@ -143,12 +156,19 @@ function AddSdlcModal({
           </button>
         </div>
 
+        {error && (
+          <p className="mb-4 rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-3.5 py-2.5 text-xs text-[var(--status-critical)]">
+            {error}
+          </p>
+        )}
+
         <form
           className="space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!application.trim() || !activity.trim()) return;
-            onSubmit({
+            if (!application.trim() || !activity.trim() || submitting) return;
+            setSubmitting(true);
+            await onSubmit({
               id: `sdlc-${Date.now().toString(36)}`,
               application: application.trim(),
               activity: activity.trim(),
@@ -161,6 +181,7 @@ function AddSdlcModal({
               status,
               relatedMilestone: relatedMilestone.trim() || "Not set",
             });
+            setSubmitting(false);
           }}
         >
           <div className="grid grid-cols-2 gap-4">
@@ -226,8 +247,12 @@ function AddSdlcModal({
             <button type="button" onClick={onClose} className="rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-brand-50">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-              Add Activity
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {submitting ? "Adding…" : "Add Activity"}
             </button>
           </div>
         </form>

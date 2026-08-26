@@ -3,39 +3,48 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import type { FlowProject } from "@/data/flow";
 import { FLOW_PROJECTS } from "@/data/flow";
-import { usePersistedState } from "@/store/use-persisted-state";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseTable } from "@/store/use-supabase-table";
 
-// Simulates FLOW's own copy of project/task data, held independently of WorkLens —
-// same pattern as the HR system's editable store.
-
-const STORAGE_KEY = "worklens-demo:flow-projects";
+// FLOW's own project/task data — shared via Supabase so a project logged here shows
+// up for every device, the same as HR and the IT Ticket System.
+const TABLE = "flow_projects";
 
 interface FlowContextValue {
   projects: FlowProject[];
-  updateProject: (id: string, patch: Partial<FlowProject>) => void;
-  addProject: (project: FlowProject) => void;
+  loading: boolean;
+  error: string | null;
+  updateProject: (id: string, patch: Partial<FlowProject>) => Promise<void>;
+  addProject: (project: FlowProject) => Promise<void>;
 }
 
 const FlowContext = createContext<FlowContextValue | null>(null);
 
 export function FlowProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = usePersistedState<FlowProject[]>(STORAGE_KEY, FLOW_PROJECTS);
+  const { rows: projects, loading, error, refetch } = useSupabaseTable<FlowProject>(TABLE, FLOW_PROJECTS);
 
   const updateProject = useCallback(
-    (id: string, patch: Partial<FlowProject>) => {
-      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    async (id: string, patch: Partial<FlowProject>) => {
+      const { error: updateError } = await supabase.from(TABLE).update(patch).eq("id", id);
+      if (updateError) throw updateError;
+      await refetch();
     },
-    [setProjects]
+    [refetch]
   );
 
   const addProject = useCallback(
-    (project: FlowProject) => {
-      setProjects((prev) => [project, ...prev]);
+    async (project: FlowProject) => {
+      const { error: insertError } = await supabase.from(TABLE).insert(project);
+      if (insertError) throw insertError;
+      await refetch();
     },
-    [setProjects]
+    [refetch]
   );
 
-  const value = useMemo(() => ({ projects, updateProject, addProject }), [projects, updateProject, addProject]);
+  const value = useMemo(
+    () => ({ projects, loading, error, updateProject, addProject }),
+    [projects, loading, error, updateProject, addProject]
+  );
 
   return <FlowContext.Provider value={value}>{children}</FlowContext.Provider>;
 }

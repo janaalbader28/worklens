@@ -10,6 +10,8 @@ without requiring those systems to change.
 This is a demo built with simulated organizational data. Nothing here is a real
 integration; it's a working prototype meant to show the product concept end to end.
 
+**Live demo:** [worklens-ten.vercel.app](https://worklens-ten.vercel.app/)
+
 ## The two-layer concept
 
 The app is split into two conceptual layers, and the UI deliberately keeps them
@@ -30,8 +32,12 @@ Supervisor **Tasks** page.
 
 ## Getting started
 
+WorkLens needs a Supabase project for its shared data (see [Shared backend](#shared-backend)
+below) — the app fails fast at build/start time if the two env vars aren't set.
+
 ```bash
 npm install
+cp .env.example .env.local   # fill in your Supabase project's URL + anon key
 npm run dev
 ```
 
@@ -50,14 +56,50 @@ No real authentication — both login screens just let you pick an identity.
 
 ## How the demo data works
 
-Each source system persists its own data to `localStorage` in the browser, simulating
-a real system holding its own records. Ticket assignment is the one place data
-crosses from an Enterprise System into WorkLens live, without a manual sync step —
-the same way an HR System hire or profile edit is immediately reflected in WorkLens
-employee lists.
+Every system's data (employees, tickets, FLOW projects, SDLC activities, handover
+requests, per-item notes/status) lives in a shared Supabase Postgres database — the
+same data every device and every visitor sees, updating live via Supabase Realtime.
+Ticket assignment is the one place data crosses from an Enterprise System into
+WorkLens, without a manual sync step — the same way an HR System hire or profile edit
+is immediately reflected in WorkLens employee lists, on any device.
 
-Because state lives in the browser, **clearing site data for localhost (or a private
-window) resets the demo back to its seed data.**
+The one thing that stays local to a browser is which identity you're "logged in" as
+(`supervisor-unit` / `employee-id` in `localStorage`) — that's session state, not
+shared data, so a phone and a laptop can legitimately be signed in as different
+people at the same time.
+
+## Shared backend
+
+WorkLens uses [Supabase](https://supabase.com) (hosted Postgres + realtime) as its
+shared backend, talked to directly from the browser with the public anon key —
+that's safe by design, since access is governed by the Row Level Security policies
+in [`supabase/schema.sql`](supabase/schema.sql), not by keeping the key secret.
+
+**Setup:**
+1. Create a free Supabase project.
+2. In its SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql) once — it
+   creates all six tables, RLS policies, and enables realtime. Safe to re-run.
+3. From Project Settings > API, copy the Project URL and anon/public key into
+   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (locally in
+   `.env.local`, and in whatever hosts the deployment — see below).
+4. First page load seeds the tables from the app's demo dataset automatically.
+
+**Tables:** `employees`, `tickets`, `flow_projects`, `sdlc_activities`,
+`handover_requests`, `work_log_entries` — column names match the TypeScript types in
+`src/data/*` field-for-field.
+
+**Deploying (Vercel or Azure):** set the same two `NEXT_PUBLIC_SUPABASE_*` env vars
+in the host's environment/configuration settings before building — the app throws at
+build time if they're missing, so a misconfigured deploy fails loudly rather than
+shipping broken. On Azure, this is under the Static Web App or App Service resource's
+Configuration / Application settings.
+
+**Limitations:** there's no real per-user login in this prototype (both "supervisor"
+and "employee" sign-in are identity pickers), so the RLS policies are permissive —
+anyone with the deployed URL can read and write all demo data. Fine for a prototype
+with fictional org data; would need real auth to restrict further. A fresh free-tier
+Supabase project also pauses after a week with no activity — opening the dashboard
+un-pauses it.
 
 ## Key pages
 
@@ -73,6 +115,7 @@ window) resets the demo back to its seed data.**
 - [Next.js](https://nextjs.org) 16 (App Router, Turbopack)
 - React 19 + TypeScript
 - Tailwind CSS v4
+- [Supabase](https://supabase.com) (Postgres + Realtime) for shared data
 - [Recharts](https://recharts.org) for charts, [lucide-react](https://lucide.dev) for icons
 
 ## Scripts

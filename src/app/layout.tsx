@@ -4,6 +4,7 @@ import { EmployeesProvider } from "@/store/employees-store";
 import { TicketsProvider } from "@/store/tickets-store";
 import { WorkLogProvider } from "@/store/work-log-store";
 import { HandoverRequestsProvider } from "@/store/handover-requests-store";
+import { RootDataGate } from "@/components/layout/RootDataGate";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <EmployeesProvider>
           <TicketsProvider>
             <WorkLogProvider>
-              <HandoverRequestsProvider>{children}</HandoverRequestsProvider>
+              <HandoverRequestsProvider>
+                <RootDataGate>{children}</RootDataGate>
+              </HandoverRequestsProvider>
             </WorkLogProvider>
           </TicketsProvider>
         </EmployeesProvider>

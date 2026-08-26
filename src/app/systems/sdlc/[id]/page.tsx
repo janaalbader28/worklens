@@ -35,7 +35,7 @@ function SdlcDetailForm({
   onUpdate,
 }: {
   activity: SdlcActivity;
-  onUpdate: (id: string, patch: Partial<SdlcActivity>) => void;
+  onUpdate: (id: string, patch: Partial<SdlcActivity>) => Promise<void>;
 }) {
   const [description, setDescription] = useState(activity.description);
   const [stage, setStage] = useState(activity.stage);
@@ -47,21 +47,31 @@ function SdlcDetailForm({
   const [deadline, setDeadline] = useState(activity.deadline);
   const [relatedMilestone, setRelatedMilestone] = useState(activity.relatedMilestone);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function handleSave() {
-    onUpdate(activity.id, {
-      description,
-      stage,
-      status,
-      assignedUnit,
-      assignedEmployee: assignedEmployee.trim() || undefined,
-      estimatedHours,
-      startDate,
-      deadline,
-      relatedMilestone,
-    });
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2500);
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onUpdate(activity.id, {
+        description,
+        stage,
+        status,
+        assignedUnit,
+        assignedEmployee: assignedEmployee.trim() || undefined,
+        estimatedHours,
+        startDate,
+        deadline,
+        relatedMilestone,
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError("Couldn't save — check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -137,9 +147,10 @@ function SdlcDetailForm({
         <div className="mt-6 flex items-center gap-3 border-t border-border pt-5">
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--status-good)]">
@@ -147,6 +158,7 @@ function SdlcDetailForm({
               Saved
             </span>
           )}
+          {saveError && <span className="text-sm font-medium text-[var(--status-critical)]">{saveError}</span>}
         </div>
       </Card>
 

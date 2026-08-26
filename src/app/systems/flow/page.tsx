@@ -35,6 +35,7 @@ export default function FlowSystemPage() {
   const system = getSourceSystem("flow");
   const { projects, addProject } = useFlowProjects();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   return (
     <SystemPageShell>
@@ -107,10 +108,19 @@ export default function FlowSystemPage() {
 
       {showAddForm && (
         <AddFlowRecordModal
-          onClose={() => setShowAddForm(false)}
-          onSubmit={(record) => {
-            addProject(record);
+          error={addError}
+          onClose={() => {
+            setAddError(null);
             setShowAddForm(false);
+          }}
+          onSubmit={async (record) => {
+            setAddError(null);
+            try {
+              await addProject(record);
+              setShowAddForm(false);
+            } catch {
+              setAddError("Couldn't save this record — check your connection and try again.");
+            }
           }}
         />
       )}
@@ -119,11 +129,13 @@ export default function FlowSystemPage() {
 }
 
 function AddFlowRecordModal({
+  error,
   onClose,
   onSubmit,
 }: {
+  error: string | null;
   onClose: () => void;
-  onSubmit: (record: FlowProject) => void;
+  onSubmit: (record: FlowProject) => Promise<void>;
 }) {
   const [project, setProject] = useState("");
   const [task, setTask] = useState("");
@@ -137,6 +149,7 @@ function AddFlowRecordModal({
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [milestones, setMilestones] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/40 px-4 py-8">
@@ -148,12 +161,19 @@ function AddFlowRecordModal({
           </button>
         </div>
 
+        {error && (
+          <p className="mb-4 rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-3.5 py-2.5 text-xs text-[var(--status-critical)]">
+            {error}
+          </p>
+        )}
+
         <form
           className="space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!project.trim() || !task.trim()) return;
-            onSubmit({
+            if (!project.trim() || !task.trim() || submitting) return;
+            setSubmitting(true);
+            await onSubmit({
               id: `flow-${Date.now().toString(36)}`,
               project: project.trim(),
               task: task.trim(),
@@ -172,6 +192,7 @@ function AddFlowRecordModal({
                 .map((m) => m.trim())
                 .filter(Boolean),
             });
+            setSubmitting(false);
           }}
         >
           <div className="grid grid-cols-2 gap-4">
@@ -243,8 +264,12 @@ function AddFlowRecordModal({
             <button type="button" onClick={onClose} className="rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-brand-50">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-              Add Record
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {submitting ? "Adding…" : "Add Record"}
             </button>
           </div>
         </form>

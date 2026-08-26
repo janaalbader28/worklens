@@ -99,6 +99,7 @@ export default function HrSystemPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [importNotice, setImportNotice] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const sorted = useMemo(() => [...employees].sort((a, b) => a.name.localeCompare(b.name)), [employees]);
 
@@ -221,10 +222,19 @@ export default function HrSystemPage() {
 
       {showAddForm && (
         <AddEmployeeModal
-          onClose={() => setShowAddForm(false)}
-          onSubmit={(input) => {
-            addEmployee(makeEmployee(input));
+          error={addError}
+          onClose={() => {
+            setAddError(null);
             setShowAddForm(false);
+          }}
+          onSubmit={async (input) => {
+            setAddError(null);
+            try {
+              await addEmployee(makeEmployee(input));
+              setShowAddForm(false);
+            } catch {
+              setAddError("Couldn't save this employee — check your connection and try again.");
+            }
           }}
         />
       )}
@@ -233,11 +243,13 @@ export default function HrSystemPage() {
 }
 
 function AddEmployeeModal({
+  error,
   onClose,
   onSubmit,
 }: {
+  error: string | null;
   onClose: () => void;
-  onSubmit: (input: { name: string; title: string; department: Department; weeklyHours: number; skills: string; knowledgeAreas: string }) => void;
+  onSubmit: (input: { name: string; title: string; department: Department; weeklyHours: number; skills: string; knowledgeAreas: string }) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
@@ -245,6 +257,7 @@ function AddEmployeeModal({
   const [weeklyHours, setWeeklyHours] = useState(40);
   const [skills, setSkills] = useState("");
   const [knowledgeAreas, setKnowledgeAreas] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
@@ -256,12 +269,20 @@ function AddEmployeeModal({
           </button>
         </div>
 
+        {error && (
+          <p className="mb-4 rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-3.5 py-2.5 text-xs text-[var(--status-critical)]">
+            {error}
+          </p>
+        )}
+
         <form
           className="space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!name.trim() || !title.trim()) return;
-            onSubmit({ name: name.trim(), title: title.trim(), department, weeklyHours, skills, knowledgeAreas });
+            if (!name.trim() || !title.trim() || submitting) return;
+            setSubmitting(true);
+            await onSubmit({ name: name.trim(), title: title.trim(), department, weeklyHours, skills, knowledgeAreas });
+            setSubmitting(false);
           }}
         >
           <Field label="Full Name">
@@ -307,8 +328,12 @@ function AddEmployeeModal({
             <button type="button" onClick={onClose} className="rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-brand-50">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-              Add Employee
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {submitting ? "Adding…" : "Add Employee"}
             </button>
           </div>
         </form>

@@ -27,6 +27,8 @@ export default function HrEmployeeProfilePage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [availability, setAvailability] = useState<Exclude<AvailabilityStatus, "Limited">>("Available");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillLevel, setNewSkillLevel] = useState<Exclude<SkillLevel, "Expert">>("Beginner");
@@ -73,18 +75,26 @@ export default function HrEmployeeProfilePage() {
     setSkills((prev) => prev.filter((s) => s.name !== name));
   }
 
-  function handleSave() {
-    updateEmployee(employee!.id, {
-      title,
-      department,
-      supervisorNameOverride: supervisorName,
-      email,
-      weeklyHours,
-      skills,
-      availabilityOverride: availability,
-    });
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 3000);
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateEmployee(employee!.id, {
+        title,
+        department,
+        supervisorNameOverride: supervisorName,
+        email,
+        weeklyHours,
+        skills,
+        availabilityOverride: availability,
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setSaveError("Couldn't save — check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -241,9 +251,10 @@ export default function HrEmployeeProfilePage() {
       <div className="flex items-center gap-4">
         <button
           onClick={handleSave}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
-          Save Changes
+          {saving ? "Saving…" : "Save Changes"}
         </button>
         {saved && (
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--status-good)]">
@@ -251,6 +262,7 @@ export default function HrEmployeeProfilePage() {
             Saved to HR System
           </span>
         )}
+        {saveError && <span className="text-sm font-medium text-[var(--status-critical)]">{saveError}</span>}
       </div>
 
       <SourceSystemNotice>

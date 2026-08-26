@@ -58,7 +58,7 @@ export default function HandoverPlannerPage() {
                       Review in Planner
                     </button>
                     <button
-                      onClick={() => markReviewed(r.id)}
+                      onClick={() => markReviewed(r.id).catch(() => {})}
                       className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-brand-50"
                     >
                       Mark Reviewed

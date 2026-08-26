@@ -110,7 +110,7 @@ function WorkRowCard({ row }: { row: WorkRow }) {
           <PriorityBadge priority={row.priority} />
           <select
             value={workflowStatus}
-            onChange={(e) => setWorkflowStatus(row.key, e.target.value as WorkflowStatus)}
+            onChange={(e) => setWorkflowStatus(row.key, e.target.value as WorkflowStatus).catch(() => {})}
             className="input max-w-[150px]"
           >
             {WORKFLOW_OPTIONS.map((s) => (
@@ -167,7 +167,7 @@ function WorkRowCard({ row }: { row: WorkRow }) {
                 <button
                   onClick={() => {
                     if (!noteDraft.trim()) return;
-                    addNote(row.key, noteDraft.trim());
+                    addNote(row.key, noteDraft.trim()).catch(() => {});
                     setNoteDraft("");
                   }}
                   className="shrink-0 rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-brand-50"
@@ -190,7 +190,7 @@ function WorkRowCard({ row }: { row: WorkRow }) {
                 <button
                   onClick={() => {
                     if (!messageDraft.trim()) return;
-                    addMessage(row.key, messageDraft.trim());
+                    addMessage(row.key, messageDraft.trim()).catch(() => {});
                     setMessageDraft("");
                     setMessageSent(true);
                     window.setTimeout(() => setMessageSent(false), 2000);

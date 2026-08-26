@@ -18,6 +18,8 @@ export default function HandoverRequestsPage() {
   const [endDate, setEndDate] = useState("");
   const [affected, setAffected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const workOptions = [
     ...me.upcomingProjects.map((p) => p.name),
@@ -31,15 +33,23 @@ export default function HandoverRequestsPage() {
     setAffected((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
   }
 
-  function handleSubmit() {
-    if (!startDate || !endDate) return;
-    submitRequest({ employeeId: me.id, note, startDate, endDate, affectedWork: affected });
-    setSubmitted(true);
-    setNote("");
-    setStartDate("");
-    setEndDate("");
-    setAffected([]);
-    window.setTimeout(() => setSubmitted(false), 3000);
+  async function handleSubmit() {
+    if (!startDate || !endDate || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitRequest({ employeeId: me.id, note, startDate, endDate, affectedWork: affected });
+      setSubmitted(true);
+      setNote("");
+      setStartDate("");
+      setEndDate("");
+      setAffected([]);
+      window.setTimeout(() => setSubmitted(false), 3000);
+    } catch {
+      setSubmitError("Couldn't submit this request — check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -95,10 +105,10 @@ export default function HandoverRequestsPage() {
         <div className="mt-5 flex items-center gap-4">
           <button
             onClick={handleSubmit}
-            disabled={!startDate || !endDate}
+            disabled={!startDate || !endDate || submitting}
             className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
           >
-            Submit Handover Request
+            {submitting ? "Submitting…" : "Submit Handover Request"}
           </button>
           {submitted && (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--status-good)]">
@@ -106,6 +116,7 @@ export default function HandoverRequestsPage() {
               Sent to your supervisor
             </span>
           )}
+          {submitError && <span className="text-sm font-medium text-[var(--status-critical)]">{submitError}</span>}
         </div>
       </Card>
 

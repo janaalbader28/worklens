@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
-import { usePersistedState } from "./use-persisted-state";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseTable } from "./use-supabase-table";
 
-const STORAGE_KEY = "worklens-demo:handover-requests";
+const TABLE = "handover_requests";
 
 export interface HandoverRequest {
   id: string;
@@ -18,27 +19,45 @@ export interface HandoverRequest {
 
 interface HandoverRequestsContextValue {
   requests: HandoverRequest[];
-  submitRequest: (input: Omit<HandoverRequest, "id" | "status" | "submittedAt">) => void;
-  markReviewed: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  submitRequest: (input: Omit<HandoverRequest, "id" | "status" | "submittedAt">) => Promise<void>;
+  markReviewed: (id: string) => Promise<void>;
 }
 
 const HandoverRequestsContext = createContext<HandoverRequestsContextValue | null>(null);
 
 export function HandoverRequestsProvider({ children }: { children: ReactNode }) {
-  const [requests, setRequests] = usePersistedState<HandoverRequest[]>(STORAGE_KEY, []);
+  const { rows: requests, loading, error, refetch } = useSupabaseTable<HandoverRequest>(TABLE, []);
 
-  const submitRequest = useCallback((input: Omit<HandoverRequest, "id" | "status" | "submittedAt">) => {
-    setRequests((prev) => [
-      { ...input, id: `HR-${Date.now().toString(36)}`, status: "Pending Supervisor Review", submittedAt: "Just now" },
-      ...prev,
-    ]);
-  }, [setRequests]);
+  const submitRequest = useCallback(
+    async (input: Omit<HandoverRequest, "id" | "status" | "submittedAt">) => {
+      const created: HandoverRequest = {
+        ...input,
+        id: `HR-${Date.now().toString(36)}`,
+        status: "Pending Supervisor Review",
+        submittedAt: "Just now",
+      };
+      const { error: insertError } = await supabase.from(TABLE).insert(created);
+      if (insertError) throw insertError;
+      await refetch();
+    },
+    [refetch]
+  );
 
-  const markReviewed = useCallback((id: string) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Reviewed" } : r)));
-  }, [setRequests]);
+  const markReviewed = useCallback(
+    async (id: string) => {
+      const { error: updateError } = await supabase.from(TABLE).update({ status: "Reviewed" }).eq("id", id);
+      if (updateError) throw updateError;
+      await refetch();
+    },
+    [refetch]
+  );
 
-  const value = useMemo(() => ({ requests, submitRequest, markReviewed }), [requests, submitRequest, markReviewed]);
+  const value = useMemo(
+    () => ({ requests, loading, error, submitRequest, markReviewed }),
+    [requests, loading, error, submitRequest, markReviewed]
+  );
 
   return <HandoverRequestsContext.Provider value={value}>{children}</HandoverRequestsContext.Provider>;
 }

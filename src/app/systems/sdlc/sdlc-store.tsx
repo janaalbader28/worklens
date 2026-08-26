@@ -3,41 +3,46 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import type { SdlcActivity } from "@/data/sdlc";
 import { SDLC_ACTIVITIES } from "@/data/sdlc";
-import { usePersistedState } from "@/store/use-persisted-state";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseTable } from "@/store/use-supabase-table";
 
-// Simulates the SDLC system's own copy of development activity data, held
-// independently of WorkLens — same pattern as the HR system's editable store.
-
-const STORAGE_KEY = "worklens-demo:sdlc-activities";
+// SDLC's own development activity data — shared via Supabase, same pattern as FLOW.
+const TABLE = "sdlc_activities";
 
 interface SdlcContextValue {
   activities: SdlcActivity[];
-  updateActivity: (id: string, patch: Partial<SdlcActivity>) => void;
-  addActivity: (activity: SdlcActivity) => void;
+  loading: boolean;
+  error: string | null;
+  updateActivity: (id: string, patch: Partial<SdlcActivity>) => Promise<void>;
+  addActivity: (activity: SdlcActivity) => Promise<void>;
 }
 
 const SdlcContext = createContext<SdlcContextValue | null>(null);
 
 export function SdlcProvider({ children }: { children: ReactNode }) {
-  const [activities, setActivities] = usePersistedState<SdlcActivity[]>(STORAGE_KEY, SDLC_ACTIVITIES);
+  const { rows: activities, loading, error, refetch } = useSupabaseTable<SdlcActivity>(TABLE, SDLC_ACTIVITIES);
 
   const updateActivity = useCallback(
-    (id: string, patch: Partial<SdlcActivity>) => {
-      setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    async (id: string, patch: Partial<SdlcActivity>) => {
+      const { error: updateError } = await supabase.from(TABLE).update(patch).eq("id", id);
+      if (updateError) throw updateError;
+      await refetch();
     },
-    [setActivities]
+    [refetch]
   );
 
   const addActivity = useCallback(
-    (activity: SdlcActivity) => {
-      setActivities((prev) => [activity, ...prev]);
+    async (activity: SdlcActivity) => {
+      const { error: insertError } = await supabase.from(TABLE).insert(activity);
+      if (insertError) throw insertError;
+      await refetch();
     },
-    [setActivities]
+    [refetch]
   );
 
   const value = useMemo(
-    () => ({ activities, updateActivity, addActivity }),
-    [activities, updateActivity, addActivity]
+    () => ({ activities, loading, error, updateActivity, addActivity }),
+    [activities, loading, error, updateActivity, addActivity]
   );
 
   return <SdlcContext.Provider value={value}>{children}</SdlcContext.Provider>;

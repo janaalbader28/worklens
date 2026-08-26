@@ -3,52 +3,50 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import type { Employee } from "@/data/types";
 import { EMPLOYEES as SEED_EMPLOYEES } from "@/data/employees";
-import { usePersistedState } from "@/store/use-persisted-state";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseTable } from "@/store/use-supabase-table";
 
-// Shared, root-level employee directory — the same bridge pattern as tickets-store.
-// The HR System writes here (profile edits, new hires); WorkLens supervisor/employee
-// pages read from here, so a new IT hire shows up in the employee login list and the
-// supervisor's team views without a separate sync step.
-const STORAGE_KEY = "worklens-demo:hr-employees";
+// Shared employee directory, backed by Supabase so every device sees the same
+// data. The HR System writes here (profile edits, new hires); WorkLens
+// supervisor/employee pages read from here, so a new IT hire shows up in the
+// employee login list and the supervisor's team views on any device, not just
+// the one that added them.
+const TABLE = "employees";
 
 interface EmployeesContextValue {
   employees: Employee[];
-  addEmployee: (employee: Employee) => void;
-  updateEmployee: (id: string, patch: Partial<Employee>) => void;
-  resetToSeed: () => void;
+  loading: boolean;
+  error: string | null;
+  addEmployee: (employee: Employee) => Promise<void>;
+  updateEmployee: (id: string, patch: Partial<Employee>) => Promise<void>;
 }
 
 const EmployeesContext = createContext<EmployeesContextValue | null>(null);
 
 export function EmployeesProvider({ children }: { children: ReactNode }) {
-  const [employees, setEmployees] = usePersistedState<Employee[]>(STORAGE_KEY, SEED_EMPLOYEES);
+  const { rows: employees, loading, error, refetch } = useSupabaseTable<Employee>(TABLE, SEED_EMPLOYEES);
 
   const addEmployee = useCallback(
-    (employee: Employee) => {
-      setEmployees((prev) => [employee, ...prev]);
+    async (employee: Employee) => {
+      const { error: insertError } = await supabase.from(TABLE).insert(employee);
+      if (insertError) throw insertError;
+      await refetch();
     },
-    [setEmployees]
+    [refetch]
   );
 
   const updateEmployee = useCallback(
-    (id: string, patch: Partial<Employee>) => {
-      setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    async (id: string, patch: Partial<Employee>) => {
+      const { error: updateError } = await supabase.from(TABLE).update(patch).eq("id", id);
+      if (updateError) throw updateError;
+      await refetch();
     },
-    [setEmployees]
+    [refetch]
   );
 
-  const resetToSeed = useCallback(() => {
-    setEmployees(SEED_EMPLOYEES);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Ignore.
-    }
-  }, [setEmployees]);
-
   const value = useMemo(
-    () => ({ employees, addEmployee, updateEmployee, resetToSeed }),
-    [employees, addEmployee, updateEmployee, resetToSeed]
+    () => ({ employees, loading, error, addEmployee, updateEmployee }),
+    [employees, loading, error, addEmployee, updateEmployee]
   );
 
   return <EmployeesContext.Provider value={value}>{children}</EmployeesContext.Provider>;

@@ -26,6 +26,7 @@ export default function TicketSystemPage() {
   const system = getSourceSystem("tickets");
   const { tickets, addTicket } = useTickets();
   const [showForm, setShowForm] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   return (
     <SystemPageShell>
@@ -98,10 +99,19 @@ export default function TicketSystemPage() {
 
       {showForm && (
         <NewIncidentModal
-          onClose={() => setShowForm(false)}
-          onSubmit={(input) => {
-            addTicket(input);
+          error={addError}
+          onClose={() => {
+            setAddError(null);
             setShowForm(false);
+          }}
+          onSubmit={async (input) => {
+            setAddError(null);
+            try {
+              await addTicket(input);
+              setShowForm(false);
+            } catch {
+              setAddError("Couldn't save this incident — check your connection and try again.");
+            }
           }}
         />
       )}
@@ -110,11 +120,13 @@ export default function TicketSystemPage() {
 }
 
 function NewIncidentModal({
+  error,
   onClose,
   onSubmit,
 }: {
+  error: string | null;
   onClose: () => void;
-  onSubmit: (input: Parameters<ReturnType<typeof useTickets>["addTicket"]>[0]) => void;
+  onSubmit: (input: Parameters<ReturnType<typeof useTickets>["addTicket"]>[0]) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -125,6 +137,7 @@ function NewIncidentModal({
   const [estimatedHours, setEstimatedHours] = useState(3);
   const [slaHours, setSlaHours] = useState(24);
   const [expectedResolutionDate, setExpectedResolutionDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 py-8 overflow-y-auto">
@@ -136,12 +149,19 @@ function NewIncidentModal({
           </button>
         </div>
 
+        {error && (
+          <p className="mb-4 rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-3.5 py-2.5 text-xs text-[var(--status-critical)]">
+            {error}
+          </p>
+        )}
+
         <form
           className="space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!title.trim()) return;
-            onSubmit({
+            if (!title.trim() || submitting) return;
+            setSubmitting(true);
+            await onSubmit({
               title: title.trim(),
               description: description.trim() || "No additional description provided.",
               status,
@@ -154,6 +174,7 @@ function NewIncidentModal({
               createdBy: "Prototype User",
               assignedBy: "Service Desk Triage",
             });
+            setSubmitting(false);
           }}
         >
           <Field label="Incident Title">
@@ -230,8 +251,12 @@ function NewIncidentModal({
             <button type="button" onClick={onClose} className="rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-brand-50">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-              Save Incident
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {submitting ? "Saving…" : "Save Incident"}
             </button>
           </div>
         </form>

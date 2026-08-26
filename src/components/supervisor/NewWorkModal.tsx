@@ -25,23 +25,35 @@ export function NewWorkModal({ unit, onClose }: { unit: Department; onClose: () 
   const [estimatedHours, setEstimatedHours] = useState(8);
   const [deadline, setDeadline] = useState("");
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleSubmit() {
-    if (!title.trim()) return;
+  async function handleSubmit() {
+    if (!title.trim() || submitting) return;
     if (kind === "ticket") {
-      addTicket({
-        title: title.trim(),
-        description: description.trim() || "No additional description provided.",
-        status: "Open",
-        priority,
-        assignedUnit,
-        raisedDate: DEMO_TODAY_LABEL,
-        estimatedHours,
-        slaHours: 24,
-        expectedResolutionDate: deadline || "Not set",
-        createdBy: "Supervisor",
-        assignedBy: "Supervisor",
-      });
+      setSubmitting(true);
+      setSubmitError(null);
+      try {
+        await addTicket({
+          title: title.trim(),
+          description: description.trim() || "No additional description provided.",
+          status: "Open",
+          priority,
+          assignedUnit,
+          raisedDate: DEMO_TODAY_LABEL,
+          estimatedHours,
+          slaHours: 24,
+          expectedResolutionDate: deadline || "Not set",
+          createdBy: "Supervisor",
+          assignedBy: "Supervisor",
+        });
+        setDone(true);
+      } catch {
+        setSubmitError("Couldn't save this ticket — check your connection and try again.");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
     }
     // Project / Task / Ad-hoc work: simulated-only for this prototype — FLOW and SDLC
     // remain read-only source systems, so these are recorded for this session only.
@@ -120,12 +132,22 @@ export function NewWorkModal({ unit, onClose }: { unit: Department; onClose: () 
               </Field>
             </div>
 
+            {submitError && (
+              <p className="rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-3.5 py-2.5 text-xs text-[var(--status-critical)]">
+                {submitError}
+              </p>
+            )}
+
             <div className="flex justify-between gap-3 pt-2">
               <button type="button" onClick={() => setKind(null)} className="rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-brand-50">
                 Back
               </button>
-              <button type="submit" className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-                Create
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              >
+                {submitting ? "Creating…" : "Create"}
               </button>
             </div>
           </form>

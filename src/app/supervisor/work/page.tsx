@@ -22,6 +22,7 @@ export default function SupervisorWorkPage() {
   const { employees } = useEmployees();
   const [assigning, setAssigning] = useState<Record<string, string>>({});
   const [openTicket, setOpenTicket] = useState<AssignedTicket | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const unitTickets = useMemo(() => ticketsForUnit(tickets, unit), [tickets, unit]);
   const queue = unitTickets.filter((t) => !t.assignedEmployeeId && t.status !== "Closed" && t.status !== "Resolved");
@@ -35,10 +36,15 @@ export default function SupervisorWorkPage() {
     return map;
   }, [queue, unitEmployees]);
 
-  function handleAssign(ticketId: string, employeeId: string) {
-    assignTicketToEmployee(ticketId, employeeId);
-    setAssigning((prev) => ({ ...prev, [ticketId]: "" }));
-    setOpenTicket(null);
+  async function handleAssign(ticketId: string, employeeId: string) {
+    setAssignError(null);
+    try {
+      await assignTicketToEmployee(ticketId, employeeId);
+      setAssigning((prev) => ({ ...prev, [ticketId]: "" }));
+      setOpenTicket(null);
+    } catch {
+      setAssignError("Couldn't assign this ticket — check your connection and try again.");
+    }
   }
 
   return (
@@ -50,6 +56,12 @@ export default function SupervisorWorkPage() {
           on your team should handle each one.
         </p>
       </div>
+
+      {assignError && (
+        <p className="rounded-lg border border-[var(--status-critical-border)] bg-[var(--status-critical-bg)] px-4 py-3 text-sm text-[var(--status-critical)]">
+          {assignError}
+        </p>
+      )}
 
       <Card>
         <CardHeader

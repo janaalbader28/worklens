@@ -54,7 +54,7 @@ function FlowDetailForm({
 }: {
   record: FlowProject;
   allProjects: FlowProject[];
-  onUpdate: (id: string, patch: Partial<FlowProject>) => void;
+  onUpdate: (id: string, patch: Partial<FlowProject>) => Promise<void>;
 }) {
   const [description, setDescription] = useState(record.description);
   const [taskDescription, setTaskDescription] = useState(record.taskDescription);
@@ -67,6 +67,8 @@ function FlowDetailForm({
   const [startDate, setStartDate] = useState(record.startDate);
   const [deadline, setDeadline] = useState(record.deadline);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const siblings = useMemo(
     () => allProjects.filter((p) => p.project === record.project).sort((a, b) => a.deadline.localeCompare(b.deadline)),
@@ -76,21 +78,29 @@ function FlowDetailForm({
     .map((s) => s.deadline)
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
 
-  function handleSave() {
-    onUpdate(record.id, {
-      description,
-      taskDescription,
-      owner,
-      assignedUnit,
-      assignedEmployee: assignedEmployee.trim() || undefined,
-      priority,
-      status,
-      estimatedHours,
-      startDate,
-      deadline,
-    });
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2500);
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onUpdate(record.id, {
+        description,
+        taskDescription,
+        owner,
+        assignedUnit,
+        assignedEmployee: assignedEmployee.trim() || undefined,
+        priority,
+        status,
+        estimatedHours,
+        startDate,
+        deadline,
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError("Couldn't save — check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -180,9 +190,10 @@ function FlowDetailForm({
         <div className="mt-6 flex items-center gap-3 border-t border-border pt-5">
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--status-good)]">
@@ -190,6 +201,7 @@ function FlowDetailForm({
               Saved
             </span>
           )}
+          {saveError && <span className="text-sm font-medium text-[var(--status-critical)]">{saveError}</span>}
         </div>
       </Card>
 
