@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="cyanBlue" x1="10" y1="14" x2="40" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2fc7f0" />
+      <stop offset="100%" stop-color="#2f7ff0" />
+    </linearGradient>
+    <linearGradient id="tealBlue" x1="8" y1="32" x2="40" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1fd3ac" />
+      <stop offset="100%" stop-color="#2f8ff0" />
+    </linearGradient>
+    <linearGradient id="violetBlue" x1="10" y1="50" x2="40" y2="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b6ff5" />
+      <stop offset="100%" stop-color="#2f7ff0" />
+    </linearGradient>
+    <linearGradient id="lensRing" x1="33" y1="21" x2="55" y2="43" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#39c6f7" />
+      <stop offset="100%" stop-color="#2f6fef" />
+    </linearGradient>
+    <radialGradient id="lensCore" cx="0.35" cy="0.35" r="0.75">
+      <stop offset="0%" stop-color="#1c4f9c" />
+      <stop offset="100%" stop-color="#0c2c58" />
+    </radialGradient>
+  </defs>
+
+  <path d="M14 14 C 22 14, 26 20, 32.5 26" stroke="url(#cyanBlue)" stroke-width="4.25" stroke-linecap="round" />
+  <circle cx="10" cy="14" r="4.5" fill="#2fc7f0" />
+
+  <path d="M12.5 32 H 34" stroke="url(#tealBlue)" stroke-width="4.25" stroke-linecap="round" />
+  <circle cx="8" cy="32" r="4.5" fill="#1fd3ac" />
+
+  <path d="M14 50 C 22 50, 26 44, 32.5 38" stroke="url(#violetBlue)" stroke-width="4.25" stroke-linecap="round" />
+  <circle cx="10" cy="50" r="4.5" fill="#8b6ff5" />
+
+  <path d="M55 32 H 60" stroke="#2f9bef" stroke-width="4.25" stroke-linecap="round" />
+
+  <circle cx="44" cy="32" r="11" fill="none" stroke="url(#lensRing)" stroke-width="3.75" />
+  <circle cx="44" cy="32" r="5.25" fill="url(#lensCore)" />
+</svg>
