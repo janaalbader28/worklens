@@ -73,6 +73,59 @@ export function computeEmployeeCapacity(employee: Employee, tickets: AssignedTic
   };
 }
 
+export interface EmployeeWorkItem {
+  key: string;
+  title: string;
+  type: "Ticket" | "Ad-hoc";
+  dueDate: string | null;
+  status: DisplayStatus;
+  progress: number;
+  remainingHours: number;
+  ticketId?: string;
+}
+
+/** Every active-or-completed work item on `employee`'s plate, in the same shape
+ * whether it's a live ticket or a seed ad-hoc item — used for both the "my work"
+ * lists (My Work, MyWorkList) and the small KPI counts (Active Work, Overdue, Due
+ * Soon) that need to agree with each other and with `computeEmployeeCapacity`. */
+export function computeEmployeeWorkItems(employee: Employee, tickets: AssignedTicket[], getEntry: WorkLogLookup): EmployeeWorkItem[] {
+  const items: EmployeeWorkItem[] = [];
+
+  tickets
+    .filter((t) => (t.assignedEmployeeIds ?? []).includes(employee.id))
+    .forEach((t) => {
+      const entry = getEntry(`${employee.id}:${t.id}`);
+      const status = unifiedItemStatus(entry.workflowStatus, t.status);
+      items.push({
+        key: `${employee.id}:${t.id}`,
+        title: t.title,
+        type: "Ticket",
+        dueDate: t.expectedResolutionDate,
+        status,
+        progress: status === "Completed" ? 100 : Math.min(100, Math.max(0, entry.progress ?? 0)),
+        remainingHours: itemRemainingHours(t.estimatedHours, status === "Completed", entry.progress),
+        ticketId: t.id,
+      });
+    });
+
+  employee.adhoc.forEach((a) => {
+    const entry = getEntry(`${employee.id}:${a.id}`);
+    const status = unifiedItemStatus(entry.workflowStatus);
+    const dueDate = a.deadline === "Ongoing" ? null : a.deadline;
+    items.push({
+      key: `${employee.id}:${a.id}`,
+      title: a.name,
+      type: "Ad-hoc",
+      dueDate,
+      status,
+      progress: status === "Completed" ? 100 : Math.min(100, Math.max(0, entry.progress ?? 0)),
+      remainingHours: itemRemainingHours(a.estimatedHours, status === "Completed", entry.progress),
+    });
+  });
+
+  return items;
+}
+
 export type DisplayStatus = "Completed" | "In Progress" | "Not Started" | "Blocked";
 
 /** A single, unified status for any work item — ticket or ad-hoc — for status rollups
