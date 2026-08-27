@@ -1,27 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CheckCircle2, Plus, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Plus, X } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SourceSystemNotice } from "@/components/systems/SourceSystemHeader";
 import { SystemPageShell } from "@/components/systems/SystemPageShell";
-import { DEPARTMENTS } from "@/data/config";
-import type { Department, Skill, SkillLevel } from "@/data/types";
+import { IT_DEPARTMENTS } from "@/data/config";
+import type { Department, EmployeeLevel, Skill, SkillLevel } from "@/data/types";
 import { getEmployeeEmail, getSupervisorName, type AvailabilityStatus } from "@/lib/hr";
 import { useEmployees } from "@/store/employees-store";
 
 const ADD_SKILL_LEVELS: Exclude<SkillLevel, "Expert">[] = ["Beginner", "Intermediate", "Advanced"];
 const AVAILABILITY_OPTIONS: Exclude<AvailabilityStatus, "Limited">[] = ["Available", "Unavailable"];
+const LEVEL_OPTIONS: EmployeeLevel[] = ["Employee", "Supervisor"];
 
 export default function HrEmployeeProfilePage() {
   const params = useParams<{ id: string }>();
   const { employees, updateEmployee } = useEmployees();
   const employee = employees.find((e) => e.id === params.id);
 
-  const [title, setTitle] = useState("");
-  const [department, setDepartment] = useState<Department>(DEPARTMENTS[0]);
-  const [supervisorName, setSupervisorName] = useState("");
+  const [department, setDepartment] = useState<Department>(IT_DEPARTMENTS[0]);
+  const [level, setLevel] = useState<EmployeeLevel>("Employee");
   const [email, setEmail] = useState("");
   const [weeklyHours, setWeeklyHours] = useState(40);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -36,26 +37,35 @@ export default function HrEmployeeProfilePage() {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!employee) return;
-    setTitle(employee.title);
     setDepartment(employee.department);
-    setSupervisorName(getSupervisorName(employee));
+    setLevel(employee.level);
     setEmail(getEmployeeEmail(employee));
     setWeeklyHours(employee.weeklyHours);
     setSkills(employee.skills);
     setAvailability(employee.availabilityOverride ?? "Available");
     setSaved(false);
-  }, [employee]);
+  }, [employee, employees]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!employee) {
     return (
       <SystemPageShell>
+        <Link href="/systems/hr" className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">
+          <ArrowLeft className="h-4 w-4" />
+          Back to HR System
+        </Link>
         <p className="text-sm text-ink-muted">Employee not found in the HR system.</p>
       </SystemPageShell>
     );
   }
 
   const initials = employee.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+  // Only one Supervisor per department — if someone else already holds that slot for the
+  // currently-selected department, the Supervisor option is disabled until they're moved
+  // to Employee first.
+  const otherSupervisor = employees.find(
+    (e) => e.id !== employee.id && e.department === department && e.level === "Supervisor"
+  );
 
   function addSkill() {
     const name = newSkillName.trim();
@@ -80,9 +90,8 @@ export default function HrEmployeeProfilePage() {
     setSaveError(null);
     try {
       await updateEmployee(employee!.id, {
-        title,
         department,
-        supervisorNameOverride: supervisorName,
+        level,
         email,
         weeklyHours,
         skills,
@@ -99,6 +108,11 @@ export default function HrEmployeeProfilePage() {
 
   return (
     <SystemPageShell>
+      <Link href="/systems/hr" className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">
+        <ArrowLeft className="h-4 w-4" />
+        Back to HR System
+      </Link>
+
       <div className="flex items-center gap-4">
         <div className="h-14 w-14 shrink-0 rounded-full bg-brand-800 text-white text-lg font-semibold flex items-center justify-center">
           {initials}
@@ -116,20 +130,57 @@ export default function HrEmployeeProfilePage() {
             <Field label="Employee ID">
               <input value={employee.employeeIdNumber} disabled className="input opacity-60" />
             </Field>
-            <Field label="Position">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} className="input" />
-            </Field>
             <Field label="Department">
-              <select value={department} onChange={(e) => setDepartment(e.target.value as Department)} className="input">
-                {DEPARTMENTS.map((d) => (
+              <select
+                value={department}
+                onChange={(e) => {
+                  const nextDepartment = e.target.value as Department;
+                  setDepartment(nextDepartment);
+                  const conflictingSupervisor = employees.find(
+                    (emp) => emp.id !== employee.id && emp.department === nextDepartment && emp.level === "Supervisor"
+                  );
+                  if (level === "Supervisor" && conflictingSupervisor) setLevel("Employee");
+                }}
+                className="input"
+              >
+                {IT_DEPARTMENTS.map((d) => (
                   <option key={d} value={d}>
                     {d}
                   </option>
                 ))}
               </select>
             </Field>
+            <Field label="Level">
+              <select value={level} onChange={(e) => setLevel(e.target.value as EmployeeLevel)} className="input">
+                {LEVEL_OPTIONS.map((l) => (
+                  <option key={l} value={l} disabled={l === "Supervisor" && !!otherSupervisor}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+              {level === "Supervisor" && (
+                <p className="mt-1.5 text-xs text-ink-muted">
+                  New hires added to {department} in the HR System will default to reporting to {employee.name}.
+                </p>
+              )}
+              {otherSupervisor && (
+                <p className="mt-1.5 text-xs text-[var(--status-warning)]">
+                  {otherSupervisor.name} is already the supervisor for {department}. Change them to Employee first to
+                  make this option available.
+                </p>
+              )}
+            </Field>
             <Field label="Supervisor">
-              <input value={supervisorName} onChange={(e) => setSupervisorName(e.target.value)} className="input" />
+              <input
+                value={getSupervisorName({ level, department }, employees)}
+                disabled
+                className="input opacity-60"
+              />
+              <p className="mt-1.5 text-xs text-ink-muted">
+                {level === "Supervisor"
+                  ? "Supervisors are the top of their department’s chain in this demo — no supervisor above them."
+                  : "Derived from the department’s Supervisor — set Level to Supervisor on that person’s profile to change it."}
+              </p>
             </Field>
             <Field label="Contact">
               <input value={email} onChange={(e) => setEmail(e.target.value)} className="input" />

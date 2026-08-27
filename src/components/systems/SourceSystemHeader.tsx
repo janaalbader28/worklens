@@ -5,10 +5,8 @@ import { RefreshCw, Loader2, Check } from "lucide-react";
 import type { SourceSystem } from "@/data/systems";
 
 const ACCENT_BAR: Record<SourceSystem["accent"], string> = {
-  blue: "bg-brand-600",
   amber: "bg-[var(--status-warning)]",
   teal: "bg-accent-teal",
-  violet: "bg-accent-violet",
 };
 
 export function SourceSystemHeader({

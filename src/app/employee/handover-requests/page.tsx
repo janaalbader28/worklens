@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { CheckCircle2, Clock } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
+import type { LeaveEvent } from "@/data/types";
 import { useEmployeeSession } from "@/store/session-store";
 import { useEmployees } from "@/store/employees-store";
 import { useHandoverRequests } from "@/store/handover-requests-store";
+import { DEMO_TODAY, formatDisplayDate } from "@/lib/date";
+
+const LEAVE_TYPES: LeaveEvent["type"][] = ["Annual Leave", "Sick Leave", "Training", "Public Holiday"];
 
 export default function HandoverRequestsPage() {
   const { employeeId } = useEmployeeSession();
   const { employees } = useEmployees();
-  const me = employees.find((e) => e.id === employeeId) ?? employees.find((e) => e.id === "sara-al-qahtani")!;
+  const me = employees.find((e) => e.id === employeeId) ?? employees[0];
   const { requests, submitRequest } = useHandoverRequests();
 
+  const [leaveType, setLeaveType] = useState<LeaveEvent["type"]>(LEAVE_TYPES[0]);
   const [note, setNote] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -22,7 +27,6 @@ export default function HandoverRequestsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const workOptions = [
-    ...me.upcomingProjects.map((p) => p.name),
     ...me.upcomingTickets.map((t) => t.title),
     ...me.adhoc.map((a) => a.name),
   ];
@@ -35,15 +39,27 @@ export default function HandoverRequestsPage() {
 
   async function handleSubmit() {
     if (!startDate || !endDate || submitting) return;
+    if (new Date(`${endDate}T00:00:00`) < new Date(`${startDate}T00:00:00`)) {
+      setSubmitError("End date can't be before the start date.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await submitRequest({ employeeId: me.id, note, startDate, endDate, affectedWork: affected });
+      await submitRequest({
+        employeeId: me.id,
+        note,
+        startDate: formatDisplayDate(new Date(`${startDate}T00:00:00`)),
+        endDate: formatDisplayDate(new Date(`${endDate}T00:00:00`)),
+        affectedWork: affected,
+        leaveType,
+      });
       setSubmitted(true);
       setNote("");
       setStartDate("");
       setEndDate("");
       setAffected([]);
+      setLeaveType(LEAVE_TYPES[0]);
       window.setTimeout(() => setSubmitted(false), 3000);
     } catch {
       setSubmitError("Couldn't submit this request — check your connection and try again.");
@@ -63,12 +79,33 @@ export default function HandoverRequestsPage() {
 
       <Card>
         <CardHeader title="Report Unavailability" subtitle="e.g. “I will be unavailable from 10–17 September.”" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Leave Type">
+            <select value={leaveType} onChange={(e) => setLeaveType(e.target.value as LeaveEvent["type"])} className="input">
+              {LEAVE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Start Date">
-            <input value={startDate} onChange={(e) => setStartDate(e.target.value)} placeholder="10 September 2026" className="input" />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              min={DEMO_TODAY.toISOString().slice(0, 10)}
+              className="input"
+            />
           </Field>
           <Field label="End Date">
-            <input value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder="17 September 2026" className="input" />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate || DEMO_TODAY.toISOString().slice(0, 10)}
+              className="input"
+            />
           </Field>
         </div>
         <div className="mt-4">
@@ -130,7 +167,7 @@ export default function HandoverRequestsPage() {
               <li key={r.id} className="py-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-ink">
-                    {r.startDate} – {r.endDate}
+                    {r.leaveType} · {r.startDate} – {r.endDate}
                   </p>
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${

@@ -9,6 +9,31 @@ export function parseLooseDate(value: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+const SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** Formats a Date (e.g. from a native `<input type="date">`) to match the
+ * "26 Aug 2026" style used throughout the app's seed data. (Not using
+ * `toLocaleDateString` here — the en-GB locale abbreviates September as
+ * "Sept", four letters, inconsistent with every other month and with the
+ * app's existing three-letter seed dates.) */
+export function formatDisplayDate(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = SHORT_MONTHS[date.getMonth()];
+  return `${day} ${month} ${date.getFullYear()}`;
+}
+
+/** Converts a "26 Aug 2026"-style label to the `YYYY-MM-DD` value a native
+ * `<input type="date">` expects. Inverse of `formatDisplayDate`. */
+export function toInputDateValue(label: string): string {
+  const date = parseLooseDate(label);
+  if (!date) return "";
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export type DueStatus = "Overdue" | "Due Soon" | "On Track";
 
 /** Due-soon window, in days, used to flag upcoming deadlines. */

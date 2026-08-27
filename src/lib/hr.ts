@@ -1,22 +1,22 @@
 import type { Department, Employee } from "@/data/types";
-import { SUPERVISOR } from "@/data/employees";
 import { DEMO_TODAY, parseLooseDate } from "@/lib/date";
 
-// One nominated lead per department — used only to render a believable "Supervisor"
-// column on the HR System page. WorkLens itself doesn't rely on this hierarchy.
-const DEPARTMENT_LEAD: Record<Department, string> = {
-  "Data & Analytics": "Ahmed Al-Hassan",
-  "Digital Solutions": "Saad Al-Dawsari",
-  "Business Systems": "Fatimah Al-Mutairi",
-  Cybersecurity: "Khalid Al-Otaibi",
-  "IT Service Support": "Abdullah Al-Harbi",
-  Applications: "Yousef Al-Ghamdi",
-};
+/** The one "Supervisor"-level employee in a department — new hires in that department
+ * are linked to them as their supervisor by default. Data-driven off `level`, so
+ * promoting someone to Supervisor on their HR profile is what makes them the default. */
+export function getDepartmentSupervisor(department: Department, employees: Employee[]): Employee | undefined {
+  return employees.find((e) => e.department === department && e.level === "Supervisor");
+}
 
-export function getSupervisorName(employee: Pick<Employee, "name" | "department" | "supervisorNameOverride">): string {
-  if (employee.supervisorNameOverride) return employee.supervisorNameOverride;
-  const lead = DEPARTMENT_LEAD[employee.department];
-  return employee.name === lead ? SUPERVISOR.name : lead;
+/** Always derived live from the department's current Supervisor — never overridable
+ * per-employee, so a supervisor change (see `getDepartmentSupervisor`) is reflected
+ * for everyone who reports to them the moment it happens, with no stale per-employee
+ * snapshot to go out of sync. A Supervisor is the top of their department's chain in
+ * this demo, so they have no supervisor of their own. */
+export function getSupervisorName(employee: Pick<Employee, "level" | "department">, employees: Employee[]): string {
+  if (employee.level === "Supervisor") return "—";
+  const supervisor = getDepartmentSupervisor(employee.department, employees);
+  return supervisor?.name ?? "—";
 }
 
 export function getEmployeeEmail(employee: Pick<Employee, "name" | "email">): string {

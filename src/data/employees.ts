@@ -1,23 +1,18 @@
 import type { Employee } from "./types";
 
-const SCHEDULE = "Full-time · Sun–Thu · 8:00 AM–5:00 PM";
+const SCHEDULE = "Full-time · Sun–Thu · 7:00 AM–4:00 PM";
 
 function pct(w: { project: number; operational: number; adhoc: number; other: number }) {
   return Math.round(((w.project + w.operational + w.adhoc + w.other) / 40) * 1000) / 10;
 }
 
-export const SUPERVISOR = {
-  name: "Nasser Al-Fahad",
-  title: "Director, Technology & Data",
-};
-
 export const EMPLOYEES: Employee[] = [
   {
     id: "sara-al-qahtani",
     name: "Sara Al-Qahtani",
-    title: "Data Analyst",
     department: "Data & Analytics",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "ahmed-al-hassan",
     employeeIdNumber: "EMP-10231",
     skills: [
       { name: "Python", level: "Advanced" },
@@ -33,12 +28,8 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 72,
     futureCapacity: 81,
     forecast8Week: [72, 74, 77, 81, 85, 89, 86, 81],
-    upcomingProjects: [
-      { id: "p1", name: "Regional Sales Power BI Dashboard", role: "Lead Analyst", priority: "High", deadline: "05 Sep 2026", hoursPerWeek: 8, status: "On Track" },
-      { id: "p2", name: "HR Workforce SQL Reporting", role: "Contributor", priority: "Medium", deadline: "20 Sep 2026", hoursPerWeek: 5, status: "On Track" },
-    ],
     upcomingTickets: [
-      { id: "t1", title: "Sales dashboard refresh error", priority: "Medium", deadline: "28 Aug 2026", estimatedHours: 3, status: "In Progress" },
+      { id: "t1", title: "Sales dashboard refresh error", priority: "Medium", deadline: "27 Aug 2026", estimatedHours: 3, status: "In Progress" },
       { id: "t2", title: "Access request — Finance BI workspace", priority: "Low", deadline: "27 Aug 2026", estimatedHours: 1, status: "Queued" },
       { id: "t3", title: "Data quality check — Q3 report", priority: "Medium", deadline: "02 Sep 2026", estimatedHours: 2, status: "Open" },
     ],
@@ -52,9 +43,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "ahmed-al-hassan",
     name: "Ahmed Al-Hassan",
-    title: "Senior Data Engineer",
     department: "Data & Analytics",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10118",
     skills: [
       { name: "Python", level: "Expert" },
@@ -68,13 +59,9 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 96,
     futureCapacity: 108,
     forecast8Week: [96, 98, 101, 104, 108, 111, 106, 100],
-    upcomingProjects: [
-      { id: "p1", name: "Customer Churn ML Pipeline", role: "Tech Lead", priority: "High", deadline: "12 Sep 2026", hoursPerWeek: 18, status: "At Risk" },
-      { id: "p2", name: "Data Warehouse Migration", role: "Contributor", priority: "High", deadline: "30 Sep 2026", hoursPerWeek: 6, status: "At Risk" },
-    ],
     upcomingTickets: [
       { id: "t1", title: "ETL job failure — nightly load", priority: "High", deadline: "26 Aug 2026", estimatedHours: 4, status: "In Progress" },
-      { id: "t2", title: "Schema change request — Finance mart", priority: "Medium", deadline: "29 Aug 2026", estimatedHours: 3, status: "Open" },
+      { id: "t2", title: "Schema change request — Finance mart", priority: "Medium", deadline: "27 Aug 2026", estimatedHours: 3, status: "Open" },
     ],
     adhoc: [
       { id: "a1", name: "On-call pipeline support", priority: "High", deadline: "Ongoing", estimatedHours: 3, status: "Open" },
@@ -84,9 +71,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "mohammed-al-salem",
     name: "Mohammed Al-Salem",
-    title: "BI Analyst",
     department: "Digital Solutions",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "saad-al-dawsari",
     employeeIdNumber: "EMP-10309",
     skills: [
       { name: "Power BI", level: "Advanced" },
@@ -100,11 +87,8 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 64,
     futureCapacity: 73,
     forecast8Week: [64, 66, 68, 71, 73, 75, 74, 72],
-    upcomingProjects: [
-      { id: "p1", name: "Digital Services Adoption Dashboard", role: "Contributor", priority: "Medium", deadline: "15 Sep 2026", hoursPerWeek: 7, status: "On Track" },
-    ],
     upcomingTickets: [
-      { id: "t1", title: "Tableau license migration", priority: "Low", deadline: "05 Sep 2026", estimatedHours: 2, status: "Queued" },
+      { id: "t1", title: "Tableau license migration", priority: "Low", deadline: "03 Sep 2026", estimatedHours: 2, status: "Queued" },
     ],
     adhoc: [
       { id: "a1", name: "Ad-hoc reporting requests", priority: "Low", deadline: "Ongoing", estimatedHours: 2.6, status: "Open" },
@@ -116,9 +100,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "fatimah-al-mutairi",
     name: "Fatimah Al-Mutairi",
-    title: "Business Systems Analyst",
     department: "Business Systems",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10077",
     skills: [
       { name: "SQL", level: "Advanced" },
@@ -132,11 +116,8 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 87,
     futureCapacity: 92,
     forecast8Week: [87, 88, 90, 91, 92, 93, 91, 89],
-    upcomingProjects: [
-      { id: "p1", name: "ERP Procurement Module Rollout", role: "Lead Analyst", priority: "High", deadline: "18 Sep 2026", hoursPerWeek: 16, status: "At Risk" },
-    ],
     upcomingTickets: [
-      { id: "t1", title: "ERP access role mismatch", priority: "Medium", deadline: "28 Aug 2026", estimatedHours: 3, status: "In Progress" },
+      { id: "t1", title: "ERP access role mismatch", priority: "Medium", deadline: "27 Aug 2026", estimatedHours: 3, status: "In Progress" },
     ],
     adhoc: [
       { id: "a1", name: "Stakeholder workshops", priority: "Medium", deadline: "Ongoing", estimatedHours: 3, status: "Open" },
@@ -146,9 +127,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "khalid-al-otaibi",
     name: "Khalid Al-Otaibi",
-    title: "Security Analyst",
     department: "Cybersecurity",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10412",
     skills: [
       { name: "SIEM", level: "Advanced" },
@@ -162,9 +143,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 91,
     futureCapacity: 97,
     forecast8Week: [91, 92, 94, 96, 97, 98, 96, 93],
-    upcomingProjects: [
-      { id: "p1", name: "Quarterly Penetration Test — External", role: "Lead", priority: "High", deadline: "10 Sep 2026", hoursPerWeek: 14, status: "At Risk" },
-    ],
     upcomingTickets: [
       { id: "t1", title: "SIEM alert tuning — false positives", priority: "Medium", deadline: "27 Aug 2026", estimatedHours: 4, status: "Open" },
     ],
@@ -174,9 +152,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "noura-al-dosari",
     name: "Noura Al-Dosari",
-    title: "SOC Analyst",
     department: "Cybersecurity",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "khalid-al-otaibi",
     employeeIdNumber: "EMP-10455",
     skills: [
       { name: "Incident Response", level: "Advanced" },
@@ -190,7 +168,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 58,
     futureCapacity: 66,
     forecast8Week: [58, 60, 61, 63, 66, 68, 65, 62],
-    upcomingProjects: [],
     upcomingTickets: [
       { id: "t1", title: "SOC monitoring rota coverage", priority: "Medium", deadline: "Ongoing", estimatedHours: 6, status: "In Progress" },
     ],
@@ -200,9 +177,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "abdullah-al-harbi",
     name: "Abdullah Al-Harbi",
-    title: "Systems Engineer",
     department: "IT Service Support",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10233",
     skills: [
       { name: "Windows Server", level: "Advanced" },
@@ -216,21 +193,16 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 79,
     futureCapacity: 85,
     forecast8Week: [79, 80, 82, 83, 85, 86, 84, 82],
-    upcomingProjects: [
-      { id: "p1", name: "Server Fleet Refresh — Phase 2", role: "Contributor", priority: "Medium", deadline: "25 Sep 2026", hoursPerWeek: 10, status: "On Track" },
-    ],
-    upcomingTickets: [
-      { id: "t1", title: "VM performance degradation", priority: "Medium", deadline: "29 Aug 2026", estimatedHours: 3, status: "Open" },
-    ],
+    upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
   },
   {
     id: "layla-al-zahrani",
     name: "Layla Al-Zahrani",
-    title: "Cloud Engineer",
     department: "IT Service Support",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "abdullah-al-harbi",
     employeeIdNumber: "EMP-10488",
     skills: [
       { name: "AWS", level: "Advanced" },
@@ -244,9 +216,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 88,
     futureCapacity: 95,
     forecast8Week: [88, 89, 91, 93, 95, 96, 94, 91],
-    upcomingProjects: [
-      { id: "p1", name: "Cloud Cost Optimization Initiative", role: "Lead", priority: "High", deadline: "14 Sep 2026", hoursPerWeek: 15, status: "At Risk" },
-    ],
     upcomingTickets: [],
     adhoc: [
       { id: "a1", name: "On-call cloud support", priority: "Medium", deadline: "Ongoing", estimatedHours: 3, status: "Open" },
@@ -258,9 +227,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "yousef-al-ghamdi",
     name: "Yousef Al-Ghamdi",
-    title: "Software Engineer",
     department: "Applications",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10267",
     skills: [
       { name: "Java", level: "Advanced" },
@@ -274,11 +243,8 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 70,
     futureCapacity: 77,
     forecast8Week: [70, 71, 73, 75, 77, 78, 76, 74],
-    upcomingProjects: [
-      { id: "p1", name: "Employee Self-Service Portal", role: "Contributor", priority: "Medium", deadline: "22 Sep 2026", hoursPerWeek: 12, status: "On Track" },
-    ],
     upcomingTickets: [
-      { id: "t1", title: "API rate limit bug", priority: "Medium", deadline: "28 Aug 2026", estimatedHours: 3, status: "In Progress" },
+      { id: "t1", title: "API rate limit bug", priority: "Medium", deadline: "27 Aug 2026", estimatedHours: 3, status: "In Progress" },
     ],
     adhoc: [],
     leaveEvents: [],
@@ -286,9 +252,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "reem-al-shammari",
     name: "Reem Al-Shammari",
-    title: "Frontend Developer",
     department: "Applications",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "yousef-al-ghamdi",
     employeeIdNumber: "EMP-10501",
     skills: [
       { name: "React", level: "Advanced" },
@@ -302,9 +268,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 82,
     futureCapacity: 89,
     forecast8Week: [82, 83, 85, 87, 89, 90, 88, 85],
-    upcomingProjects: [
-      { id: "p1", name: "Employee Self-Service Portal", role: "Lead Frontend", priority: "Medium", deadline: "22 Sep 2026", hoursPerWeek: 14, status: "At Risk" },
-    ],
     upcomingTickets: [
       { id: "t1", title: "UI regression — mobile layout", priority: "Low", deadline: "30 Aug 2026", estimatedHours: 2, status: "Open" },
     ],
@@ -314,9 +277,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "faisal-al-qahtani",
     name: "Faisal Al-Qahtani",
-    title: "QA Engineer",
     department: "Applications",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "yousef-al-ghamdi",
     employeeIdNumber: "EMP-10344",
     skills: [
       { name: "Test Automation", level: "Advanced" },
@@ -330,9 +293,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 61,
     futureCapacity: 68,
     forecast8Week: [61, 62, 64, 66, 68, 69, 67, 65],
-    upcomingProjects: [
-      { id: "p1", name: "Employee Self-Service Portal", role: "QA Lead", priority: "Medium", deadline: "22 Sep 2026", hoursPerWeek: 9, status: "On Track" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
@@ -340,9 +300,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "hessa-al-mansour",
     name: "Hessa Al-Mansour",
-    title: "Business Analyst",
     department: "Business Systems",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "fatimah-al-mutairi",
     employeeIdNumber: "EMP-10199",
     skills: [
       { name: "ERP", level: "Advanced" },
@@ -356,9 +316,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 75,
     futureCapacity: 80,
     forecast8Week: [75, 76, 77, 79, 80, 81, 79, 77],
-    upcomingProjects: [
-      { id: "p1", name: "ERP Procurement Module Rollout", role: "Contributor", priority: "High", deadline: "18 Sep 2026", hoursPerWeek: 10, status: "On Track" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
@@ -366,9 +323,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "omar-al-rashid",
     name: "Omar Al-Rashid",
-    title: "Systems Analyst",
     department: "Business Systems",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "fatimah-al-mutairi",
     employeeIdNumber: "EMP-10056",
     skills: [
       { name: "SQL", level: "Advanced" },
@@ -382,9 +339,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 94,
     futureCapacity: 102,
     forecast8Week: [94, 96, 98, 100, 102, 104, 101, 97],
-    upcomingProjects: [
-      { id: "p1", name: "ERP Procurement Module Rollout", role: "Contributor", priority: "High", deadline: "18 Sep 2026", hoursPerWeek: 16, status: "At Risk" },
-    ],
     upcomingTickets: [
       { id: "t1", title: "Data mapping discrepancy", priority: "High", deadline: "27 Aug 2026", estimatedHours: 4, status: "In Progress" },
     ],
@@ -394,9 +348,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "maha-al-subaie",
     name: "Maha Al-Subaie",
-    title: "BI Developer",
     department: "Data & Analytics",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "ahmed-al-hassan",
     employeeIdNumber: "EMP-10390",
     skills: [
       { name: "Power BI", level: "Advanced" },
@@ -410,9 +364,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 68,
     futureCapacity: 74,
     forecast8Week: [68, 70, 71, 73, 74, 76, 75, 72],
-    upcomingProjects: [
-      { id: "p1", name: "Regional Sales Power BI Dashboard", role: "Contributor", priority: "High", deadline: "05 Sep 2026", hoursPerWeek: 8, status: "On Track" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
@@ -420,9 +371,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "turki-al-anazi",
     name: "Turki Al-Anazi",
-    title: "Data Engineer",
     department: "Data & Analytics",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "ahmed-al-hassan",
     employeeIdNumber: "EMP-10142",
     skills: [
       { name: "Python", level: "Advanced" },
@@ -437,9 +388,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 99,
     futureCapacity: 115,
     forecast8Week: [99, 102, 106, 110, 115, 118, 112, 105],
-    upcomingProjects: [
-      { id: "p1", name: "Data Warehouse Migration", role: "Lead Engineer", priority: "High", deadline: "30 Sep 2026", hoursPerWeek: 20, status: "At Risk" },
-    ],
     upcomingTickets: [
       { id: "t1", title: "ETL job failure — nightly load", priority: "High", deadline: "26 Aug 2026", estimatedHours: 4, status: "In Progress" },
     ],
@@ -449,9 +397,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "aisha-al-malki",
     name: "Aisha Al-Malki",
-    title: "UX Designer",
     department: "Digital Solutions",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "saad-al-dawsari",
     employeeIdNumber: "EMP-10522",
     skills: [
       { name: "Figma", level: "Advanced" },
@@ -465,9 +413,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 55,
     futureCapacity: 60,
     forecast8Week: [55, 56, 57, 59, 60, 61, 60, 58],
-    upcomingProjects: [
-      { id: "p1", name: "Digital Services Adoption Dashboard", role: "Designer", priority: "Low", deadline: "15 Sep 2026", hoursPerWeek: 6, status: "On Track" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
@@ -475,9 +420,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "saad-al-dawsari",
     name: "Saad Al-Dawsari",
-    title: "Product Owner",
     department: "Digital Solutions",
-    supervisorId: "sup-001",
+    level: "Supervisor",
+    supervisorId: null,
     employeeIdNumber: "EMP-10166",
     skills: [
       { name: "Agile", level: "Advanced" },
@@ -491,9 +436,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 84,
     futureCapacity: 89,
     forecast8Week: [84, 85, 86, 88, 89, 90, 88, 86],
-    upcomingProjects: [
-      { id: "p1", name: "Digital Services Adoption Dashboard", role: "Product Owner", priority: "Medium", deadline: "15 Sep 2026", hoursPerWeek: 10, status: "At Risk" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],
@@ -501,9 +443,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "nada-al-ajmi",
     name: "Nada Al-Ajmi",
-    title: "GRC Analyst",
     department: "Cybersecurity",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "khalid-al-otaibi",
     employeeIdNumber: "EMP-10288",
     skills: [
       { name: "Risk Assessment", level: "Advanced" },
@@ -517,9 +459,8 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 73,
     futureCapacity: 78,
     forecast8Week: [73, 74, 75, 77, 78, 79, 78, 76],
-    upcomingProjects: [],
     upcomingTickets: [
-      { id: "t1", title: "Vendor compliance review", priority: "Medium", deadline: "05 Sep 2026", estimatedHours: 4, status: "Open" },
+      { id: "t1", title: "Vendor compliance review", priority: "Medium", deadline: "03 Sep 2026", estimatedHours: 4, status: "Open" },
     ],
     adhoc: [],
     leaveEvents: [],
@@ -527,9 +468,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "bandar-al-shehri",
     name: "Bandar Al-Shehri",
-    title: "Network Engineer",
     department: "IT Service Support",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "abdullah-al-harbi",
     employeeIdNumber: "EMP-10377",
     skills: [
       { name: "Cisco", level: "Advanced" },
@@ -543,9 +484,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 90,
     futureCapacity: 96,
     forecast8Week: [90, 91, 93, 94, 96, 97, 95, 93],
-    upcomingProjects: [
-      { id: "p1", name: "Branch Network Redundancy Upgrade", role: "Lead", priority: "High", deadline: "20 Sep 2026", hoursPerWeek: 14, status: "At Risk" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [
@@ -555,9 +493,9 @@ export const EMPLOYEES: Employee[] = [
   {
     id: "haifa-al-turki",
     name: "Haifa Al-Turki",
-    title: "Backend Developer",
     department: "Applications",
-    supervisorId: "sup-001",
+    level: "Employee",
+    supervisorId: "yousef-al-ghamdi",
     employeeIdNumber: "EMP-10214",
     skills: [
       { name: "Node.js", level: "Advanced" },
@@ -571,9 +509,6 @@ export const EMPLOYEES: Employee[] = [
     currentUtilization: 77,
     futureCapacity: 83,
     forecast8Week: [77, 78, 79, 81, 83, 84, 82, 80],
-    upcomingProjects: [
-      { id: "p1", name: "Employee Self-Service Portal", role: "Backend Lead", priority: "Medium", deadline: "22 Sep 2026", hoursPerWeek: 13, status: "On Track" },
-    ],
     upcomingTickets: [],
     adhoc: [],
     leaveEvents: [],

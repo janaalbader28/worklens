@@ -8,8 +8,6 @@ import {
   Repeat2,
   Users,
   Ticket,
-  Workflow,
-  GitBranch,
   Gauge,
   Clock,
   CheckCircle2,
@@ -66,7 +64,7 @@ function Hero() {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(55rem 30rem at 12% 0%, var(--brand-50) 0%, transparent 60%), radial-gradient(45rem 26rem at 100% 10%, var(--accent-violet-bg) 0%, transparent 55%)",
+            "radial-gradient(55rem 30rem at 12% 0%, var(--brand-50) 0%, transparent 60%), radial-gradient(45rem 26rem at 100% 10%, var(--accent-green-bg) 0%, transparent 55%)",
         }}
       />
 
@@ -120,7 +118,7 @@ function Hero() {
             className="hidden sm:flex absolute bottom-0 right-2 items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 shadow-lg animate-float"
             style={{ animationDelay: "0.6s" }}
           >
-            <Sparkles className="h-4 w-4 text-accent-violet" strokeWidth={1.75} />
+            <Sparkles className="h-4 w-4 text-accent-green" strokeWidth={1.75} />
             <span className="text-xs font-medium text-ink">Skill Match 94%</span>
           </div>
 
@@ -168,9 +166,7 @@ function MiniStat({ label, value, tone }: { label: string; value: string; tone: 
 
 const SOURCE_CARDS = [
   { icon: Users, title: "HR", subtitle: "Employee & Skills", accent: "text-accent-teal bg-accent-teal-bg" },
-  { icon: Workflow, title: "FLOW", subtitle: "Projects & Tasks", accent: "text-brand-600 bg-brand-50" },
   { icon: Ticket, title: "IT Tickets", subtitle: "Operational Support", accent: "text-[var(--status-warning)] bg-[var(--status-warning-bg)]" },
-  { icon: GitBranch, title: "SDLC", subtitle: "Development Activities", accent: "text-accent-violet bg-accent-violet-bg" },
 ];
 
 function ProblemSection() {
@@ -179,11 +175,11 @@ function ProblemSection() {
       <div className="mx-auto max-w-5xl text-center">
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-ink">Work is everywhere</h2>
         <p className="mt-4 max-w-xl mx-auto text-base leading-relaxed text-ink-secondary">
-          Projects, tickets, development activities and employee information live across different systems. WorkLens
-          brings them together into one capacity view.
+          Tickets and employee information live across different systems. WorkLens brings them together into one
+          capacity view.
         </p>
 
-        <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-14 grid grid-cols-2 gap-4 max-w-md mx-auto">
           {SOURCE_CARDS.map((s) => (
             <div key={s.title} className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
               <div className={`mx-auto h-11 w-11 rounded-xl flex items-center justify-center ${s.accent}`}>
@@ -433,8 +429,8 @@ function IntelligenceSection() {
         <div className="mt-12 grid gap-5 sm:grid-cols-3">
           {INTELLIGENCE_CARDS.map((c) => (
             <div key={c.title} className="rounded-2xl border border-border bg-surface p-6 text-left shadow-sm">
-              <div className="h-10 w-10 rounded-lg bg-accent-violet-bg flex items-center justify-center">
-                <c.icon className="h-[18px] w-[18px] text-accent-violet" strokeWidth={1.75} />
+              <div className="h-10 w-10 rounded-lg bg-accent-green-bg flex items-center justify-center">
+                <c.icon className="h-[18px] w-[18px] text-accent-green" strokeWidth={1.75} />
               </div>
               <h3 className="mt-3 text-sm font-semibold uppercase tracking-wide text-ink">{c.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">{c.body}</p>
@@ -458,7 +454,7 @@ function FinalCta() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(45rem 24rem at 50% 0%, rgba(124,111,240,0.25) 0%, transparent 60%)" }}
+        style={{ background: "radial-gradient(45rem 24rem at 50% 0%, rgba(76,175,80,0.25) 0%, transparent 60%)" }}
       />
       <div className="relative mx-auto max-w-3xl text-center">
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-white text-balance">

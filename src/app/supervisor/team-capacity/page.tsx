@@ -6,12 +6,14 @@ import { TeamCapacityView } from "@/components/team/TeamCapacityView";
 import { useSupervisorSession } from "@/store/session-store";
 import { useEmployees } from "@/store/employees-store";
 import { useTickets } from "@/store/tickets-store";
+import { getDepartmentSupervisor } from "@/lib/hr";
 
 export default function TeamCapacityPage() {
   const { unit } = useSupervisorSession();
   const { employees } = useEmployees();
   const { tickets } = useTickets();
   const unitEmployees = useMemo(() => employees.filter((e) => e.department === unit), [employees, unit]);
+  const currentSupervisor = getDepartmentSupervisor(unit, employees);
 
   return (
     <div className="max-w-7xl space-y-6">
@@ -24,7 +26,12 @@ export default function TeamCapacityPage() {
 
       <Card>
         <CardHeader title="Employees" subtitle={`${unitEmployees.length} employees in ${unit} (demo dataset)`} />
-        <TeamCapacityView employees={unitEmployees} tickets={tickets} detailBasePath="/supervisor/people" />
+        <TeamCapacityView
+          employees={unitEmployees}
+          tickets={tickets}
+          detailBasePath="/supervisor/people"
+          currentUserId={currentSupervisor?.id}
+        />
       </Card>
     </div>
   );

@@ -1,6 +1,15 @@
+"use client";
+
+import { useMemo } from "react";
 import { WhatIfSimulator } from "@/components/whatif/WhatIfSimulator";
+import { useSupervisorSession } from "@/store/session-store";
+import { useEmployees } from "@/store/employees-store";
 
 export default function WhatIfPage() {
+  const { unit } = useSupervisorSession();
+  const { employees } = useEmployees();
+  const unitEmployees = useMemo(() => employees.filter((e) => e.department === unit), [employees, unit]);
+
   return (
     <div className="max-w-6xl space-y-6">
       <div>
@@ -9,7 +18,7 @@ export default function WhatIfPage() {
           Simulate the impact of new work before making an allocation decision.
         </p>
       </div>
-      <WhatIfSimulator />
+      <WhatIfSimulator employees={unitEmployees} />
     </div>
   );
 }

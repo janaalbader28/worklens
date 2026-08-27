@@ -4,6 +4,7 @@ import { EmployeesProvider } from "@/store/employees-store";
 import { TicketsProvider } from "@/store/tickets-store";
 import { WorkLogProvider } from "@/store/work-log-store";
 import { HandoverRequestsProvider } from "@/store/handover-requests-store";
+import { CalendarEventsProvider } from "@/store/calendar-events-store";
 import { RootDataGate } from "@/components/layout/RootDataGate";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "WorkLens | All tasks in sight.",
   description:
-    "WorkLens connects FLOW, the IT Ticket System, HR and SDLC to answer: who is available, who has the right skills, and what happens if we assign new work.",
+    "WorkLens connects HR and the IT Ticket System to answer: who is available, who has the right skills, and what happens if we assign new work.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <TicketsProvider>
             <WorkLogProvider>
               <HandoverRequestsProvider>
-                <RootDataGate>{children}</RootDataGate>
+                <CalendarEventsProvider>
+                  <RootDataGate>{children}</RootDataGate>
+                </CalendarEventsProvider>
               </HandoverRequestsProvider>
             </WorkLogProvider>
           </TicketsProvider>

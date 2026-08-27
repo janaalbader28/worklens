@@ -11,9 +11,9 @@ import { useTickets } from "@/store/tickets-store";
 export default function MyWorkPage() {
   const { employeeId } = useEmployeeSession();
   const { employees } = useEmployees();
-  const me = employees.find((e) => e.id === employeeId) ?? employees.find((e) => e.id === "sara-al-qahtani")!;
+  const me = employees.find((e) => e.id === employeeId) ?? employees[0];
   const { tickets } = useTickets();
-  const assignedTickets = tickets.filter((t) => t.assignedEmployeeId === me.id);
+  const assignedTickets = tickets.filter((t) => (t.assignedEmployeeIds ?? []).includes(me.id));
 
   return (
     <div className="max-w-6xl space-y-6">

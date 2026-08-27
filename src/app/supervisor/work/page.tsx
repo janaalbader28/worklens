@@ -1,47 +1,56 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { Crown, X, Award, CalendarClock, Clock, ChevronRight } from "lucide-react";
+import { Crown, X, Award, CalendarClock, Clock } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PriorityBadge } from "@/components/ui/StatusBadge";
 import { CapacityBar } from "@/components/ui/ProgressBar";
 import { AiTag } from "@/components/ui/AiTag";
-import { FLOW_PROJECTS } from "@/data/flow";
+import { TaskDetailPanel } from "@/components/work/TaskDetailPanel";
 import type { AssignedTicket } from "@/store/tickets-store";
 import { useTickets } from "@/store/tickets-store";
 import { useSupervisorSession } from "@/store/session-store";
 import { useEmployees } from "@/store/employees-store";
+import { getDepartmentSupervisor } from "@/lib/hr";
 import { ticketsForUnit } from "@/store/tickets-store";
 import { rankCandidatesForTicket, type TicketCandidate } from "@/lib/ticketMatch";
 import type { Employee } from "@/data/types";
 
 export default function SupervisorWorkPage() {
   const { unit } = useSupervisorSession();
-  const { tickets, assignTicketToEmployee } = useTickets();
+  const { tickets, assignTicketToEmployee, setTicketAssignees, updateTicketStatus, updateTicketPriority, updateTicketSkills } = useTickets();
   const { employees } = useEmployees();
   const [assigning, setAssigning] = useState<Record<string, string>>({});
-  const [openTicket, setOpenTicket] = useState<AssignedTicket | null>(null);
+  const [openCandidates, setOpenCandidates] = useState<AssignedTicket | null>(null);
+  const [openDetail, setOpenDetail] = useState<AssignedTicket | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const currentUserName = getDepartmentSupervisor(unit, employees)?.name ?? "Supervisor";
 
   const unitTickets = useMemo(() => ticketsForUnit(tickets, unit), [tickets, unit]);
-  const queue = unitTickets.filter((t) => !t.assignedEmployeeId && t.status !== "Closed" && t.status !== "Resolved");
-  const assigned = unitTickets.filter((t) => t.assignedEmployeeId);
+  const queue = unitTickets.filter((t) => (t.assignedEmployeeIds ?? []).length === 0 && t.status !== "Closed" && t.status !== "Resolved");
+  const assigned = unitTickets.filter((t) => (t.assignedEmployeeIds ?? []).length > 0);
   const unitEmployees = employees.filter((e) => e.department === unit);
-  const unitFlowWork = FLOW_PROJECTS.filter((p) => p.assignedUnit === unit);
 
   const candidatesByTicket = useMemo(() => {
     const map = new Map<string, TicketCandidate[]>();
-    queue.forEach((t) => map.set(t.id, rankCandidatesForTicket(unitEmployees, t, 3)));
+    queue.forEach((t) => map.set(t.id, rankCandidatesForTicket(unitEmployees, t, unitEmployees.length)));
     return map;
   }, [queue, unitEmployees]);
+
+  // openDetail tracks whichever ticket the panel is showing; keep it pointed at the
+  // live ticket object so status/priority edits reflect immediately without closing it.
+  const detailTicket = openDetail ? unitTickets.find((t) => t.id === openDetail.id) ?? openDetail : null;
 
   async function handleAssign(ticketId: string, employeeId: string) {
     setAssignError(null);
     try {
       await assignTicketToEmployee(ticketId, employeeId);
-      setAssigning((prev) => ({ ...prev, [ticketId]: "" }));
-      setOpenTicket(null);
+      setAssigning((prev) => {
+        const next = { ...prev };
+        delete next[ticketId];
+        return next;
+      });
+      setOpenCandidates(null);
     } catch {
       setAssignError("Couldn't assign this ticket — check your connection and try again.");
     }
@@ -66,7 +75,7 @@ export default function SupervisorWorkPage() {
       <Card>
         <CardHeader
           title="Unassigned Tickets"
-          subtitle={`${queue.length} ticket${queue.length === 1 ? "" : "s"} waiting for an owner · click a ticket for suggested candidates`}
+          subtitle={`${queue.length} ticket${queue.length === 1 ? "" : "s"} waiting for an owner · click a ticket for full details, or the suggested name for why`}
         />
         {queue.length === 0 ? (
           <p className="text-sm text-ink-muted py-4">No unassigned tickets for {unit} right now.</p>
@@ -78,8 +87,8 @@ export default function SupervisorWorkPage() {
               return (
                 <li
                   key={t.id}
-                  onClick={() => setOpenTicket(t)}
-                  onKeyDown={(e) => e.key === "Enter" && setOpenTicket(t)}
+                  onClick={() => setOpenDetail(t)}
+                  onKeyDown={(e) => e.key === "Enter" && setOpenDetail(t)}
                   tabIndex={0}
                   role="button"
                   className="flex flex-wrap items-center justify-between gap-3 py-3.5 cursor-pointer rounded-lg px-2 -mx-2 hover:bg-brand-50/40 focus:bg-brand-50/40 outline-none transition-colors"
@@ -95,17 +104,19 @@ export default function SupervisorWorkPage() {
                   <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <PriorityBadge priority={t.priority} />
                     {top && (
-                      <span
-                        title={`Suggested: ${top.employee.name} (${top.skillMatch}% skill match)`}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${
+                      <button
+                        type="button"
+                        onClick={() => setOpenCandidates(t)}
+                        title={`Suggested: ${top.employee.name} (${top.skillMatch}% skill match) — click for why and how they compare`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${
                           top.skillMatch > 0
-                            ? "border-[var(--status-good-border)] bg-[var(--status-good-bg)] text-[var(--status-good)]"
-                            : "border-border-strong bg-brand-50/60 text-ink-secondary"
+                            ? "border-[var(--status-good-border)] bg-[var(--status-good-bg)] text-[var(--status-good)] hover:brightness-95"
+                            : "border-border-strong bg-brand-50/60 text-ink-secondary hover:bg-brand-50"
                         }`}
                       >
                         <Crown className="h-3 w-3" />
                         {top.employee.name.split(" ")[0]}
-                      </span>
+                      </button>
                     )}
                     <select
                       value={assigning[t.id] ?? ""}
@@ -136,19 +147,64 @@ export default function SupervisorWorkPage() {
 
       {assigned.length > 0 && (
         <Card>
-          <CardHeader title="Recently Assigned" subtitle="Tickets already routed to a team member inside WorkLens" />
+          <CardHeader
+            title="Recently Assigned"
+            subtitle="Tickets already routed to a team member inside WorkLens · click a ticket for full details, or change the dropdown to reassign — open a ticket to add a second assignee"
+          />
           <ul className="divide-y divide-border">
             {assigned.map((t) => {
-              const owner = employees.find((e) => e.id === t.assignedEmployeeId);
+              const assigneeIds = t.assignedEmployeeIds ?? [];
+              const primaryAssigneeId = assigneeIds[0] ?? "";
+              const coAssigneeCount = assigneeIds.length - 1;
+              const selected = assigning[t.id] ?? primaryAssigneeId;
+              const unchanged = selected === primaryAssigneeId;
               return (
-                <li key={t.id} className="flex items-center justify-between gap-3 py-3">
-                  <div>
+                <li
+                  key={t.id}
+                  onClick={() => setOpenDetail(t)}
+                  onKeyDown={(e) => e.key === "Enter" && setOpenDetail(t)}
+                  tabIndex={0}
+                  role="button"
+                  className="flex flex-wrap items-center justify-between gap-3 py-3.5 cursor-pointer rounded-lg px-2 -mx-2 hover:bg-brand-50/40 focus:bg-brand-50/40 outline-none transition-colors"
+                >
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-ink">
                       {t.title} <span className="text-xs font-normal text-ink-muted">({t.id})</span>
                     </p>
-                    <p className="text-xs text-ink-muted mt-0.5">Assigned to {owner?.name ?? "Unknown"}</p>
+                    <p className="text-xs text-ink-muted mt-0.5">
+                      Raised {t.raisedDate} · {t.estimatedHours}h estimated · SLA {t.slaHours}h
+                    </p>
                   </div>
-                  <PriorityBadge priority={t.priority} />
+                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <PriorityBadge priority={t.priority} />
+                    {coAssigneeCount > 0 && (
+                      <span
+                        className="rounded-full border border-brand-100 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700"
+                        title="Shared with another employee — open the ticket for details"
+                      >
+                        +{coAssigneeCount}
+                      </span>
+                    )}
+                    <select
+                      value={selected}
+                      onChange={(e) => setAssigning((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      className="input max-w-[200px]"
+                    >
+                      {unitEmployees.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      disabled={unchanged || !selected}
+                      onClick={() => handleAssign(t.id, selected)}
+                      title="Replaces all current assignees with just this person"
+                      className="rounded-lg bg-brand-800 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                    >
+                      Reassign
+                    </button>
+                  </div>
                 </li>
               );
             })}
@@ -156,48 +212,32 @@ export default function SupervisorWorkPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader title="FLOW Work for This Unit" subtitle="Reference from the FLOW source system · click a record for details" />
-        {unitFlowWork.length === 0 ? (
-          <p className="text-sm text-ink-muted py-4">No FLOW work currently assigned to {unit}.</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {unitFlowWork.map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/systems/flow/${p.id}`}
-                  className="group flex items-center justify-between gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-brand-50/40 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink group-hover:text-brand-700 group-hover:underline underline-offset-2">
-                      {p.project} <span className="text-xs font-normal text-ink-muted no-underline">— {p.task}</span>
-                    </p>
-                    <p className="text-xs text-ink-muted mt-0.5">Deadline {p.deadline}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <PriorityBadge priority={p.priority} />
-                    <ChevronRight className="h-4 w-4 text-ink-muted" />
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {openCandidates && (
+        <CandidatesModal
+          ticket={openCandidates}
+          candidates={candidatesByTicket.get(openCandidates.id) ?? []}
+          onAssign={(employeeId) => handleAssign(openCandidates.id, employeeId)}
+          onClose={() => setOpenCandidates(null)}
+        />
+      )}
 
-      {openTicket && (
-        <TicketDetailModal
-          ticket={openTicket}
-          candidates={candidatesByTicket.get(openTicket.id) ?? []}
-          onAssign={(employeeId) => handleAssign(openTicket.id, employeeId)}
-          onClose={() => setOpenTicket(null)}
+      {detailTicket && (
+        <TaskDetailPanel
+          ticket={detailTicket}
+          employees={employees}
+          currentUserName={currentUserName}
+          onClose={() => setOpenDetail(null)}
+          onUpdateStatus={(status) => updateTicketStatus(detailTicket.id, status).catch(() => setAssignError("Couldn't update status — check your connection and try again."))}
+          onUpdatePriority={(priority) => updateTicketPriority(detailTicket.id, priority).catch(() => setAssignError("Couldn't update priority — check your connection and try again."))}
+          onUpdateSkills={(skills) => updateTicketSkills(detailTicket.id, skills).catch(() => setAssignError("Couldn't update skills — check your connection and try again."))}
+          onUpdateAssignees={(ids) => setTicketAssignees(detailTicket.id, ids).catch(() => setAssignError("Couldn't update assignees — check your connection and try again."))}
         />
       )}
     </div>
   );
 }
 
-function TicketDetailModal({
+function CandidatesModal({
   ticket,
   candidates,
   onAssign,
@@ -208,6 +248,10 @@ function TicketDetailModal({
   onAssign: (employeeId: string) => void;
   onClose: () => void;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? candidates : candidates.slice(0, 3);
+  const remaining = candidates.length - visible.length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 py-8" onClick={onClose}>
       <div
@@ -238,18 +282,30 @@ function TicketDetailModal({
 
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-ink">Top {candidates.length} Suggested Employees</h3>
+            <h3 className="text-sm font-semibold text-ink">
+              {showAll ? `All ${candidates.length}` : `Top ${visible.length} of ${candidates.length}`} Suggested Employees
+            </h3>
             <AiTag label="AI-assisted recommendation" />
           </div>
 
           {candidates.length === 0 ? (
             <p className="text-sm text-ink-muted py-4">No employees available in this unit to suggest.</p>
           ) : (
-            <div className="space-y-3">
-              {candidates.map((c, idx) => (
-                <CandidateCard key={c.employee.id} candidate={c} best={idx === 0} onAssign={() => onAssign(c.employee.id)} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {visible.map((c, idx) => (
+                  <CandidateCard key={c.employee.id} candidate={c} best={idx === 0} onAssign={() => onAssign(c.employee.id)} />
+                ))}
+              </div>
+              {remaining > 0 && (
+                <button
+                  onClick={() => setShowAll(true)}
+                  className="mt-3 w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-brand-50"
+                >
+                  Show {remaining} more
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -276,7 +332,7 @@ function CandidateCard({ candidate, best, onAssign }: { candidate: TicketCandida
           </div>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-sm font-medium text-ink">{e.name}</p>
-            <p className="truncate text-xs text-ink-muted">{e.title}</p>
+            <p className="truncate text-xs text-ink-muted">{e.department}</p>
           </div>
         </div>
         {best && (

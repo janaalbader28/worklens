@@ -1,29 +1,60 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CalendarClock, Repeat2 } from "lucide-react";
+import { ArrowLeft, Plus, Repeat2, X } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { StatusBadge, PriorityBadge } from "@/components/ui/StatusBadge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SkillLevelBar } from "@/components/ui/ProgressBar";
 import { CapacityForecastChart } from "@/components/charts/CapacityForecastChart";
+import { WorkItemRow, type WorkRow } from "@/components/work/WorkItemRow";
+import type { SkillLevel } from "@/data/types";
 import { useEmployees } from "@/store/employees-store";
+import { useSupervisorSession } from "@/store/session-store";
+import { getDepartmentSupervisor } from "@/lib/hr";
 import { availableCapacity } from "@/lib/capacity";
 import { toWeekSeries } from "@/lib/forecast";
-import { getDueStatus, type DueStatus } from "@/lib/date";
 import { useTickets } from "@/store/tickets-store";
 
-const DUE_STYLES: Record<DueStatus, string> = {
-  Overdue: "bg-[var(--status-critical-bg)] border-[var(--status-critical-border)] text-[var(--status-critical)]",
-  "Due Soon": "bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning)]",
-  "On Track": "bg-[var(--status-good-bg)] border-[var(--status-good-border)] text-[var(--status-good)]",
-};
+const SKILL_LEVELS: SkillLevel[] = ["Beginner", "Intermediate", "Advanced", "Expert"];
 
 export default function EmployeeDetailsPage() {
   const params = useParams<{ id: string }>();
-  const { employees } = useEmployees();
+  const { employees, updateEmployee } = useEmployees();
   const employee = employees.find((e) => e.id === params.id);
   const { tickets } = useTickets();
+  const { unit } = useSupervisorSession();
+  const currentUserName = getDepartmentSupervisor(unit, employees)?.name ?? "Supervisor";
+  const [skillDraft, setSkillDraft] = useState("");
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>("Beginner");
+  const [skillError, setSkillError] = useState<string | null>(null);
+
+  async function addSkill() {
+    if (!employee) return;
+    const name = skillDraft.trim();
+    if (!name || employee.skills.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      setSkillDraft("");
+      return;
+    }
+    setSkillError(null);
+    try {
+      await updateEmployee(employee.id, { skills: [...employee.skills, { name, level: skillLevel }] });
+      setSkillDraft("");
+    } catch {
+      setSkillError("Couldn't save this skill — check your connection and try again.");
+    }
+  }
+
+  async function removeSkill(name: string) {
+    if (!employee) return;
+    setSkillError(null);
+    try {
+      await updateEmployee(employee.id, { skills: employee.skills.filter((s) => s.name !== name) });
+    } catch {
+      setSkillError("Couldn't remove this skill — check your connection and try again.");
+    }
+  }
 
   if (!employee) {
     return (
@@ -37,13 +68,40 @@ export default function EmployeeDetailsPage() {
     );
   }
 
-  const assignedTickets = tickets.filter((t) => t.assignedEmployeeId === employee.id);
+  const assignedTickets = tickets.filter((t) => (t.assignedEmployeeIds ?? []).includes(employee.id));
+
+  const ticketRows: WorkRow[] = [
+    ...employee.upcomingTickets.map((t) => ({
+      key: `${employee.id}:${t.id}`,
+      title: t.title,
+      type: "Ticket" as const,
+      priority: t.priority,
+      deadline: t.deadline,
+      estimatedHours: t.estimatedHours,
+    })),
+    ...assignedTickets.map((t) => ({
+      key: `${employee.id}:${t.id}`,
+      title: `${t.title} (${t.id})`,
+      type: "Ticket" as const,
+      priority: t.priority,
+      deadline: t.expectedResolutionDate,
+      estimatedHours: t.estimatedHours,
+    })),
+  ];
+  const adhocRows: WorkRow[] = employee.adhoc.map((a) => ({
+    key: `${employee.id}:${a.id}`,
+    title: a.name,
+    type: "Ad-hoc",
+    priority: a.priority,
+    deadline: a.deadline,
+    estimatedHours: a.estimatedHours,
+  }));
   const totalHours = employee.workload.project + employee.workload.operational + employee.workload.adhoc + employee.workload.other;
   const avail = availableCapacity(employee.currentUtilization);
   const initials = employee.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
 
   const workloadRows: { label: string; hours: number }[] = [
-    { label: "Project Work", hours: employee.workload.project },
+    { label: "Planned Work", hours: employee.workload.project },
     { label: "Operational Tickets", hours: employee.workload.operational },
     { label: "Ad-hoc Work", hours: employee.workload.adhoc },
     { label: "Other Commitments", hours: employee.workload.other },
@@ -63,9 +121,7 @@ export default function EmployeeDetailsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold text-ink tracking-tight">{employee.name}</h1>
-            <p className="text-sm text-ink-secondary">
-              {employee.title} · {employee.department}
-            </p>
+            <p className="text-sm text-ink-secondary">{employee.department}</p>
             <p className="text-xs text-ink-muted mt-0.5">
               {employee.employeeIdNumber} · {employee.workingSchedule}
             </p>
@@ -102,15 +158,55 @@ export default function EmployeeDetailsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Skills" subtitle="From HR employee master data" />
+          <CardHeader title="Skills" subtitle="Editable — changes reflect in the HR System too" />
           <div className="space-y-3.5">
             {employee.skills.map((s) => (
               <div key={s.name} className="flex items-center justify-between gap-4">
                 <span className="text-sm text-ink w-32 shrink-0">{s.name}</span>
-                <SkillLevelBar level={s.level} />
+                <div className="flex flex-1 items-center gap-3">
+                  <SkillLevelBar level={s.level} />
+                </div>
+                <button
+                  onClick={() => removeSkill(s.name)}
+                  className="shrink-0 text-ink-muted hover:text-ink"
+                  aria-label={`Remove ${s.name}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
             ))}
+            {employee.skills.length === 0 && <p className="text-sm text-ink-muted">No skills on record.</p>}
           </div>
+
+          <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-2">
+            <input
+              value={skillDraft}
+              onChange={(e) => setSkillDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addSkill();
+                }
+              }}
+              placeholder="New or existing skill name…"
+              className="input flex-1 min-w-[220px]"
+            />
+            <select value={skillLevel} onChange={(e) => setSkillLevel(e.target.value as SkillLevel)} className="input max-w-[140px]">
+              {SKILL_LEVELS.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={addSkill}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-800 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+              Add Skill
+            </button>
+          </div>
+          {skillError && <p className="mt-2 text-xs font-medium text-[var(--status-critical)]">{skillError}</p>}
         </Card>
 
         <Card>
@@ -141,109 +237,31 @@ export default function EmployeeDetailsPage() {
 
       <div>
         <h2 className="text-sm font-semibold text-ink mb-3">Current Work</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card>
-            <CardHeader title="Projects" />
-            {employee.upcomingProjects.length === 0 ? (
-              <EmptyState label="No upcoming projects." />
-            ) : (
-              <ul className="space-y-3">
-                {employee.upcomingProjects.map((p) => {
-                  const due = getDueStatus(p.deadline);
-                  return (
-                    <li key={p.id} className="rounded-lg border border-border p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-ink">{p.name}</p>
-                        <PriorityBadge priority={p.priority} />
-                      </div>
-                      <p className="mt-1 text-xs text-ink-muted">{p.role}</p>
-                      <div className="mt-2 flex items-center justify-between text-xs text-ink-secondary">
-                        <span className="flex items-center gap-1">
-                          <CalendarClock className="h-3.5 w-3.5" /> Due: {p.deadline}
-                        </span>
-                        <span className="tabular">{p.hoursPerWeek}h/wk</span>
-                      </div>
-                      <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium ${DUE_STYLES[due]}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                        {due}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-
+        <p className="mb-3 text-xs text-ink-muted">Click a task to view details, update its status, and add notes.</p>
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader title="Tickets" />
-            {employee.upcomingTickets.length === 0 && assignedTickets.length === 0 ? (
+            {ticketRows.length === 0 ? (
               <EmptyState label="No open tickets." />
             ) : (
-              <ul className="space-y-3">
-                {employee.upcomingTickets.map((t) => {
-                  const due = getDueStatus(t.deadline);
-                  return (
-                    <li key={t.id} className="rounded-lg border border-border p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-ink">{t.title}</p>
-                        <PriorityBadge priority={t.priority} />
-                      </div>
-                      <div className="mt-2 flex items-center justify-between text-xs text-ink-secondary">
-                        <span>Due: {t.deadline}</span>
-                        <span className="tabular">{t.estimatedHours}h</span>
-                      </div>
-                      <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium ${DUE_STYLES[due]}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                        {due}
-                      </span>
-                    </li>
-                  );
-                })}
-                {assignedTickets.map((t) => {
-                  const due = getDueStatus(t.expectedResolutionDate);
-                  return (
-                    <li key={t.id} className="rounded-lg border border-brand-100 bg-brand-50/40 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-ink">
-                          {t.title} <span className="text-xs font-normal text-ink-muted">({t.id})</span>
-                        </p>
-                        <PriorityBadge priority={t.priority} />
-                      </div>
-                      <p className="mt-1 text-[11px] text-brand-700">Newly assigned from IT Ticket System</p>
-                      <div className="mt-2 flex items-center justify-between text-xs text-ink-secondary">
-                        <span>Expected: {t.expectedResolutionDate}</span>
-                        <span className="tabular">{t.estimatedHours}h</span>
-                      </div>
-                      <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium ${DUE_STYLES[due]}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                        {due}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-3">
+                {ticketRows.map((row) => (
+                  <WorkItemRow key={row.key} row={row} currentUserName={currentUserName} />
+                ))}
+              </div>
             )}
           </Card>
 
           <Card>
             <CardHeader title="Ad-hoc Activities" />
-            {employee.adhoc.length === 0 ? (
+            {adhocRows.length === 0 ? (
               <EmptyState label="No ad-hoc activities." />
             ) : (
-              <ul className="space-y-3">
-                {employee.adhoc.map((a) => (
-                  <li key={a.id} className="rounded-lg border border-border p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-ink">{a.name}</p>
-                      <PriorityBadge priority={a.priority} />
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-ink-secondary">
-                      <span>{a.deadline}</span>
-                      <span className="tabular">{a.estimatedHours}h</span>
-                    </div>
-                  </li>
+              <div className="space-y-3">
+                {adhocRows.map((row) => (
+                  <WorkItemRow key={row.key} row={row} currentUserName={currentUserName} />
                 ))}
-              </ul>
+              </div>
             )}
           </Card>
         </div>

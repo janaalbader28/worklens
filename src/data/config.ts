@@ -46,3 +46,7 @@ export const DEPARTMENTS = [
   "IT Service Support",
   "Applications",
 ] as const;
+
+/** The demo is scoped to IT — HR and the IT Ticket System only show/assign within
+ * these two units, even though the underlying seed data spans more departments. */
+export const IT_DEPARTMENTS = ["IT Service Support", "Cybersecurity"] as const;

@@ -24,7 +24,7 @@ export default function EmployeeLoginPage() {
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return demoEmployees;
-    return demoEmployees.filter((e) => e.name.toLowerCase().includes(q) || e.title.toLowerCase().includes(q));
+    return demoEmployees.filter((e) => e.name.toLowerCase().includes(q));
   }, [demoEmployees, query]);
 
   function handleContinue() {
@@ -78,9 +78,7 @@ export default function EmployeeLoginPage() {
                     </div>
                     <div className="flex-1 min-w-0 leading-tight">
                       <p className={`font-medium truncate ${active ? "text-brand-800" : "text-ink"}`}>{e.name}</p>
-                      <p className="text-xs text-ink-muted truncate">
-                        {e.title} · {e.department}
-                      </p>
+                      <p className="text-xs text-ink-muted truncate">{e.department}</p>
                     </div>
                     {active && <Check className="h-4 w-4 shrink-0 text-brand-600" />}
                   </button>

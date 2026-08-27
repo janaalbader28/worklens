@@ -2,7 +2,7 @@
 // Enterprise Systems gateway and each system's own page render from this single source
 // so the "connected" story stays consistent everywhere.
 
-export type SystemKey = "hr" | "tickets" | "flow" | "sdlc";
+export type SystemKey = "hr" | "tickets";
 export type ConnectionStatus = "Connected" | "Syncing";
 
 export interface SourceSystem {
@@ -14,7 +14,7 @@ export interface SourceSystem {
   lastSync: string;
   href: string;
   openLabel: string;
-  accent: "blue" | "amber" | "teal" | "violet";
+  accent: "amber" | "teal";
 }
 
 export const SOURCE_SYSTEMS: SourceSystem[] = [
@@ -48,28 +48,6 @@ export const SOURCE_SYSTEMS: SourceSystem[] = [
     href: "/systems/tickets",
     openLabel: "Open IT Ticket System",
     accent: "amber",
-  },
-  {
-    key: "flow",
-    name: "FLOW",
-    subtitle: "Projects & Work Tracking",
-    dataProvided: ["Projects", "Tasks", "Assignments", "Deadlines", "Estimated Effort", "Priorities", "Status"],
-    status: "Connected",
-    lastSync: "26 Aug 2026, 10:41 AM",
-    href: "/systems/flow",
-    openLabel: "Open FLOW",
-    accent: "blue",
-  },
-  {
-    key: "sdlc",
-    name: "SDLC",
-    subtitle: "Software Development Lifecycle",
-    dataProvided: ["Development Activities", "Testing", "Milestones", "Releases", "Lifecycle Status", "Estimated Effort"],
-    status: "Connected",
-    lastSync: "26 Aug 2026, 10:39 AM",
-    href: "/systems/sdlc",
-    openLabel: "Open SDLC",
-    accent: "violet",
   },
 ];
 

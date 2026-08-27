@@ -23,10 +23,12 @@ export function TeamCapacityView({
   employees,
   tickets,
   detailBasePath,
+  currentUserId,
 }: {
   employees: Employee[];
   tickets: AssignedTicket[];
   detailBasePath: string;
+  currentUserId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [skill, setSkill] = useState("all");
@@ -45,7 +47,7 @@ export function TeamCapacityView({
       const avail = availableCapacity(e.currentUtilization);
       const statusLabel = getCapacityStatus(e.currentUtilization).label;
 
-      if (query && !e.name.toLowerCase().includes(query.toLowerCase()) && !e.title.toLowerCase().includes(query.toLowerCase())) {
+      if (query && !e.name.toLowerCase().includes(query.toLowerCase())) {
         return false;
       }
       if (skill !== "all" && !e.skills.some((s) => s.name === skill)) return false;
@@ -65,7 +67,7 @@ export function TeamCapacityView({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or title…"
+            placeholder="Search by name…"
             className="w-full rounded-lg border border-border-strong bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           />
         </div>
@@ -123,25 +125,31 @@ export function TeamCapacityView({
       </p>
 
       {view === "table" ? (
-        <TableView employees={filtered} detailBasePath={detailBasePath} />
+        <TableView employees={filtered} detailBasePath={detailBasePath} currentUserId={currentUserId} />
       ) : (
-        <CardGridView employees={filtered} tickets={tickets} detailBasePath={detailBasePath} />
+        <CardGridView employees={filtered} tickets={tickets} detailBasePath={detailBasePath} currentUserId={currentUserId} />
       )}
     </div>
   );
 }
 
-function TableView({ employees, detailBasePath }: { employees: Employee[]; detailBasePath: string }) {
+function TableView({
+  employees,
+  detailBasePath,
+  currentUserId,
+}: {
+  employees: Employee[];
+  detailBasePath: string;
+  currentUserId?: string;
+}) {
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full min-w-[980px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border bg-brand-50/60 text-left text-xs font-medium uppercase tracking-wide text-ink-secondary">
             <th className="px-4 py-3">Employee</th>
-            <th className="px-4 py-3">Role</th>
             <th className="px-4 py-3">Skills</th>
             <th className="px-4 py-3">Active Tasks</th>
-            <th className="px-4 py-3">Projects</th>
             <th className="px-4 py-3">Tickets</th>
             <th className="px-4 py-3 w-36">Current Utilization</th>
             <th className="px-4 py-3">Available Capacity</th>
@@ -164,11 +172,15 @@ function TableView({ employees, detailBasePath }: { employees: Employee[]; detai
                     <div className="leading-tight">
                       <p className="font-medium text-ink group-hover:text-brand-700 group-hover:underline underline-offset-2">
                         {e.name}
+                        {e.id === currentUserId && (
+                          <span className="ml-1.5 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 align-middle">
+                            Supervisor
+                          </span>
+                        )}
                       </p>
                     </div>
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-ink-secondary whitespace-nowrap">{e.title}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1 max-w-[220px]">
                     {e.skills.slice(0, 3).map((s) => (
@@ -182,7 +194,6 @@ function TableView({ employees, detailBasePath }: { employees: Employee[]; detai
                   </div>
                 </td>
                 <td className="px-4 py-3 tabular text-ink-secondary">{counts.activeTasks}</td>
-                <td className="px-4 py-3 tabular text-ink-secondary">{counts.projects}</td>
                 <td className="px-4 py-3 tabular text-ink-secondary">{counts.tickets}</td>
                 <td className="px-4 py-3 w-36">
                   <CapacityBar value={e.currentUtilization} />
@@ -202,7 +213,7 @@ function TableView({ employees, detailBasePath }: { employees: Employee[]; detai
           })}
           {employees.length === 0 && (
             <tr>
-              <td colSpan={11} className="px-4 py-10 text-center text-sm text-ink-muted">
+              <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-muted">
                 No employees match the current filters.
               </td>
             </tr>
@@ -213,8 +224,7 @@ function TableView({ employees, detailBasePath }: { employees: Employee[]; detai
   );
 }
 
-const TASK_TYPE_STYLES: Record<"Project" | "Ticket" | "Ad-hoc", string> = {
-  Project: "bg-brand-50 border-brand-100 text-brand-800",
+const TASK_TYPE_STYLES: Record<"Ticket" | "Ad-hoc", string> = {
   Ticket: "bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning)]",
   "Ad-hoc": "bg-brand-50/60 border-border-strong text-ink-secondary",
 };
@@ -223,10 +233,12 @@ function CardGridView({
   employees,
   tickets,
   detailBasePath,
+  currentUserId,
 }: {
   employees: Employee[];
   tickets: AssignedTicket[];
   detailBasePath: string;
+  currentUserId?: string;
 }) {
   if (employees.length === 0) {
     return <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-sm text-ink-muted">No employees match the current filters.</p>;
@@ -244,8 +256,15 @@ function CardGridView({
                 {e.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
               </div>
               <div className="min-w-0 leading-tight">
-                <p className="truncate font-medium text-ink group-hover:text-brand-700 group-hover:underline underline-offset-2">{e.name}</p>
-                <p className="truncate text-xs text-ink-muted">{e.title}</p>
+                <p className="truncate font-medium text-ink group-hover:text-brand-700 group-hover:underline underline-offset-2">
+                  {e.name}
+                  {e.id === currentUserId && (
+                    <span className="ml-1.5 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 align-middle">
+                      Supervisor
+                    </span>
+                  )}
+                </p>
+                <p className="truncate text-xs text-ink-muted">{e.department}</p>
               </div>
             </Link>
 

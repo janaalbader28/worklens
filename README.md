@@ -18,9 +18,10 @@ The app is split into two conceptual layers, and the UI deliberately keeps them
 looking distinct:
 
 - **Enterprise Systems** (`/systems/*`) — mock source-of-truth systems an org already
-  has: an **HR System** (employee master data), an **IT Ticket System**, **FLOW**
-  (project/task tracking) and **SDLC** (development activity tracking). Each has its
-  own look, its own "Sync" affordance, and its own data.
+  has: an **HR System** (employee master data) and an **IT Ticket System**. Each has
+  its own look, its own "Sync" affordance, and its own data. The demo is scoped to the
+  IT Service Support and Cybersecurity units — HR only shows employees in those units,
+  and tickets can only be routed to them.
 - **WorkLens** (`/worklens`, `/supervisor/*`, `/employee/*`) — the unified capacity
   platform supervisors and employees actually use, built from data that flows in from
   the systems above.
@@ -56,8 +57,8 @@ No real authentication — both login screens just let you pick an identity.
 
 ## How the demo data works
 
-Every system's data (employees, tickets, FLOW projects, SDLC activities, handover
-requests, per-item notes/status) lives in a shared Supabase Postgres database — the
+Every system's data (employees, tickets, handover requests, per-item notes/status)
+lives in a shared Supabase Postgres database — the
 same data every device and every visitor sees, updating live via Supabase Realtime.
 Ticket assignment is the one place data crosses from an Enterprise System into
 WorkLens, without a manual sync step — the same way an HR System hire or profile edit
@@ -78,15 +79,14 @@ in [`supabase/schema.sql`](supabase/schema.sql), not by keeping the key secret.
 **Setup:**
 1. Create a free Supabase project.
 2. In its SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql) once — it
-   creates all six tables, RLS policies, and enables realtime. Safe to re-run.
+   creates all four tables, RLS policies, and enables realtime. Safe to re-run.
 3. From Project Settings > API, copy the Project URL and anon/public key into
    `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (locally in
    `.env.local`, and in whatever hosts the deployment — see below).
 4. First page load seeds the tables from the app's demo dataset automatically.
 
-**Tables:** `employees`, `tickets`, `flow_projects`, `sdlc_activities`,
-`handover_requests`, `work_log_entries` — column names match the TypeScript types in
-`src/data/*` field-for-field.
+**Tables:** `employees`, `tickets`, `handover_requests`, `work_log_entries` — column
+names match the TypeScript types in `src/data/*` field-for-field.
 
 **Deploying (Vercel or Azure):** set the same two `NEXT_PUBLIC_SUPABASE_*` env vars
 in the host's environment/configuration settings before building — the app throws at
@@ -105,7 +105,7 @@ un-pauses it.
 
 | Area | Pages |
 |---|---|
-| Enterprise Systems | Gateway (`/`), HR System, IT Ticket System, FLOW, SDLC |
+| Enterprise Systems | Gateway (`/`), HR System, IT Ticket System |
 | WorkLens | Landing page, Supervisor login, Employee login |
 | Supervisor | Dashboard, Team Capacity, Calendar, Tasks, What-If Simulator, Handover Planner |
 | Employee | Dashboard, My Work, My Skills, Handover Requests |

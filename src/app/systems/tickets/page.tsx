@@ -1,47 +1,100 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ChevronRight, Plus, Download, X } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PriorityBadge } from "@/components/ui/StatusBadge";
 import { SourceSystemHeader, SourceSystemNotice } from "@/components/systems/SourceSystemHeader";
 import { SystemPageShell } from "@/components/systems/SystemPageShell";
 import { ClickableRow } from "@/components/systems/ClickableRow";
 import { getSourceSystem } from "@/data/systems";
-import { DEPARTMENTS } from "@/data/config";
+import { IT_DEPARTMENTS } from "@/data/config";
 import type { Department } from "@/data/types";
 import { TICKETS_TOTAL_RECORDS } from "@/data/tickets";
-import { useTickets } from "@/store/tickets-store";
-import { DEMO_TODAY_LABEL } from "@/lib/date";
+import { useTickets, type AssignedTicket } from "@/store/tickets-store";
+import { DEMO_TODAY, DEMO_TODAY_LABEL, formatDisplayDate } from "@/lib/date";
 
 const STATUS_STYLES: Record<string, string> = {
-  Open: "bg-[var(--status-critical-bg)] border-[var(--status-critical-border)] text-[var(--status-critical)]",
+  Open: "bg-brand-50 border-brand-100 text-brand-700",
   "In Progress": "bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning)]",
   "On Hold": "bg-brand-50 border-border-strong text-ink-secondary",
   Resolved: "bg-[var(--status-good-bg)] border-[var(--status-good-border)] text-[var(--status-good)]",
   Closed: "bg-brand-50 border-border-strong text-ink-muted",
 };
 
+function csvCell(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function exportTicketsCsv(tickets: AssignedTicket[]) {
+  const header = ["Incident ID", "Title", "Status", "Priority", "Assigned Unit", "Raised Date", "Estimated Effort"];
+  const rows = tickets.map((t) => [
+    t.id,
+    t.title,
+    t.status,
+    t.priority,
+    t.assignedUnit,
+    t.raisedDate,
+    `${t.estimatedHours}h`,
+  ]);
+  const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "worklens-it-tickets.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function TicketSystemPage() {
   const system = getSourceSystem("tickets");
   const { tickets, addTicket } = useTickets();
   const [showForm, setShowForm] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState(false);
 
   return (
     <SystemPageShell>
+      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">
+        <ArrowLeft className="h-4 w-4" />
+        Back to Enterprise Systems
+      </Link>
+
       <SourceSystemHeader
         system={{ ...system, name: "IT Ticket System", subtitle: "Operational Support & Service Requests" }}
         actions={
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-800 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            New Incident
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                exportTicketsCsv(tickets);
+                setExportNotice(true);
+                window.setTimeout(() => setExportNotice(false), 3500);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3.5 py-2 text-sm font-medium text-ink hover:bg-brand-50"
+            >
+              <Download className="h-4 w-4" strokeWidth={1.75} />
+              Export
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-800 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              New Incident
+            </button>
+          </div>
         }
       />
+
+      {exportNotice && (
+        <div className="rounded-lg border border-[var(--status-good-border)] bg-[var(--status-good-bg)] px-4 py-3 text-sm text-[var(--status-good)]">
+          Exported {tickets.length} incidents to worklens-it-tickets.csv.
+        </div>
+      )}
 
       <Card>
         <CardHeader
@@ -130,14 +183,26 @@ function NewIncidentModal({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [raisedDate, setRaisedDate] = useState(DEMO_TODAY_LABEL);
   const [status, setStatus] = useState<"Open" | "In Progress">("Open");
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [assignedUnit, setAssignedUnit] = useState<Department>("IT Service Support");
   const [estimatedHours, setEstimatedHours] = useState(3);
   const [slaHours, setSlaHours] = useState(24);
   const [expectedResolutionDate, setExpectedResolutionDate] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // The org's work week is Sunday–Thursday (see employee working schedules) — Friday
+  // and Saturday are the weekend, so no deadline should ever land on either day.
+  function handleDateChange(value: string) {
+    setExpectedResolutionDate(value);
+    if (!value) {
+      setDateError(null);
+      return;
+    }
+    const day = new Date(`${value}T00:00:00`).getDay();
+    setDateError(day === 5 || day === 6 ? "Deadlines can’t fall on Friday or Saturday — pick a Sunday–Thursday date." : null);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 py-8 overflow-y-auto">
@@ -159,7 +224,7 @@ function NewIncidentModal({
           className="space-y-4"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (!title.trim() || submitting) return;
+            if (!title.trim() || submitting || dateError) return;
             setSubmitting(true);
             await onSubmit({
               title: title.trim(),
@@ -167,10 +232,12 @@ function NewIncidentModal({
               status,
               priority,
               assignedUnit,
-              raisedDate,
+              raisedDate: DEMO_TODAY_LABEL,
               estimatedHours,
               slaHours,
-              expectedResolutionDate: expectedResolutionDate || "Not set",
+              expectedResolutionDate: expectedResolutionDate
+                ? formatDisplayDate(new Date(`${expectedResolutionDate}T00:00:00`))
+                : "Not set",
               createdBy: "Prototype User",
               assignedBy: "Service Desk Triage",
             });
@@ -190,7 +257,7 @@ function NewIncidentModal({
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Raised Date">
-              <input value={raisedDate} onChange={(e) => setRaisedDate(e.target.value)} className="input" />
+              <input value={DEMO_TODAY_LABEL} disabled className="input opacity-60" />
             </Field>
             <Field label="Status">
               <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="input">
@@ -207,7 +274,7 @@ function NewIncidentModal({
             </Field>
             <Field label="Assigned Unit">
               <select value={assignedUnit} onChange={(e) => setAssignedUnit(e.target.value as Department)} className="input">
-                {DEPARTMENTS.map((d) => (
+                {IT_DEPARTMENTS.map((d) => (
                   <option key={d} value={d}>
                     {d}
                   </option>
@@ -235,11 +302,13 @@ function NewIncidentModal({
           </div>
           <Field label="Expected Resolution Date">
             <input
+              type="date"
               value={expectedResolutionDate}
-              onChange={(e) => setExpectedResolutionDate(e.target.value)}
-              placeholder="e.g. 26 Aug 2026"
+              onChange={(e) => handleDateChange(e.target.value)}
+              min={DEMO_TODAY.toISOString().slice(0, 10)}
               className="input"
             />
+            {dateError && <p className="mt-1.5 text-xs text-[var(--status-critical)]">{dateError}</p>}
           </Field>
 
           <p className="text-xs text-ink-muted">
@@ -253,7 +322,7 @@ function NewIncidentModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !!dateError}
               className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
               {submitting ? "Saving…" : "Save Incident"}

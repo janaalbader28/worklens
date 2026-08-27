@@ -14,11 +14,11 @@
   --brand-100: #dcedfe;
   --brand-50: #eff8ff;
 
-  /* Accent — the teal + violet dots from the logo, used sparingly */
+  /* Accent — the teal + green dots from the logo, used sparingly */
   --accent-teal: #14b8a0;
   --accent-teal-bg: #e3faf5;
-  --accent-violet: #7c6ff0;
-  --accent-violet-bg: #f0eefe;
+  --accent-green: #4caf50;
+  --accent-green-bg: #eaf7ea;
 
   /* Neutrals */
   --surface: #ffffff;
@@ -67,8 +67,8 @@
 
   --color-accent-teal: var(--accent-teal);
   --color-accent-teal-bg: var(--accent-teal-bg);
-  --color-accent-violet: var(--accent-violet);
-  --color-accent-violet-bg: var(--accent-violet-bg);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-bg: var(--accent-green-bg);
 
   --color-surface: var(--surface);
   --color-page: var(--page);
@@ -120,7 +120,7 @@ body {
 }
 
 .text-gradient-brand {
-  background-image: linear-gradient(90deg, var(--brand-500) 0%, var(--accent-violet) 100%);
+  background-image: linear-gradient(90deg, var(--brand-500) 0%, var(--accent-green) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;

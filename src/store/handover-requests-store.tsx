@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import type { LeaveEvent } from "@/data/types";
 import { supabase } from "@/lib/supabase";
 import { useSupabaseTable } from "./use-supabase-table";
 
@@ -15,6 +16,11 @@ export interface HandoverRequest {
   affectedWork: string[];
   status: "Pending Supervisor Review" | "Reviewed";
   submittedAt: string;
+  /** The kind of leave this unavailability represents — every request submitted from
+   * the employee portal carries one, so a handover request doubles as a leave request:
+   * approving it (see the supervisor's Handover page) adds a matching entry to the
+   * employee's `leaveEvents`, which is what the calendar and HR's Leaves tab read from. */
+  leaveType: LeaveEvent["type"];
 }
 
 interface HandoverRequestsContextValue {

@@ -10,35 +10,40 @@ export interface KpiExplainer {
 }
 
 export const KPI_EXPLAINERS: Record<string, KpiExplainer> = {
-  utilization: {
-    meaning: "Measures the percentage of an employee's available working capacity currently committed to work.",
-    calculation: "Committed Work Hours ÷ Available Working Hours × 100",
-    example: "32 committed hours ÷ 40 available hours = 80% utilization",
+  teamMembers: {
+    meaning: "Everyone currently recorded under this supervisor's unit in HR.",
+    calculation: "Count of employees where Department = this unit",
+    example: "6 employees in IT Service Support = 6 team members",
   },
   availableCapacity: {
-    meaning: "Remaining capacity after accounting for assigned work.",
-    calculation: "Available Working Hours − Committed Work Hours",
-    example: "40 − 32 = 8 available hours",
+    meaning: "Remaining working capacity across the whole team after accounting for each person's active workload.",
+    calculation: "Sum across the team of (Weekly Working Hours − Active Remaining Work Hours)",
+    example: "3 employees each with 8h available = 24h available, 20% of total capacity",
   },
-  atRisk: {
-    meaning: "An employee is at risk of overload when committed work is high relative to available capacity, but hasn't crossed the overload line yet.",
-    calculation: "Utilization between the healthy and overloaded thresholds (80–95%, illustrative)",
-    example: "36 committed hours ÷ 40 available hours = 90% → At Risk",
-  },
-  overloaded: {
-    meaning: "An employee is considered overloaded when committed work exceeds available working capacity.",
-    calculation: "Committed Work Hours ÷ Available Working Hours × 100, above the overload threshold (illustrative: 95%)",
-    example: "43 committed hours ÷ 40 available hours = 107.5% → Overloaded",
-  },
-  activeTasks: {
-    meaning: "The count of projects, tickets and ad-hoc items currently assigned across the unit.",
-    calculation: "Sum of open projects + tickets + ad-hoc items per employee",
-    example: "3 employees with 2 tasks each = 6 active tasks",
+  onLeave: {
+    meaning: "Employees currently on approved leave, or starting leave within the next 7 days.",
+    calculation: "Count of employees with an approved leave event covering today or starting within 7 days",
+    example: "1 employee on leave now + 1 starting leave in 3 days = 2 on leave",
   },
   openTickets: {
     meaning: "Tickets from the IT Ticket System assigned to this unit that are not yet resolved or closed.",
     calculation: "Count of synced tickets where Assigned Unit = this unit and Status is not Resolved/Closed",
     example: "5 open + 2 in progress = 7 open tickets",
+  },
+  overdueWork: {
+    meaning: "Active work items — tickets and ad-hoc — whose due date has passed and aren't completed.",
+    calculation: "Count of active work items where due date < today",
+    example: "A ticket due 20 Aug, still open on 26 Aug → counts as overdue",
+  },
+  atRisk: {
+    meaning: "Work items likely to miss their deadline given the current workload — due soon while the assignee is already heavily loaded, or owned by someone about to be on leave.",
+    calculation: "Due-soon items where the assignee is at/above 80% utilized, plus active items owned by someone on or about to go on leave",
+    example: "A ticket due in 3 days, assigned to someone at 88% utilization → At Risk",
+  },
+  utilization: {
+    meaning: "Measures the percentage of an employee's available working capacity currently committed to active (not completed) work, adjusted for logged progress.",
+    calculation: "Remaining Work Hours ÷ Weekly Working Hours × 100",
+    example: "32 remaining hours ÷ 40 weekly hours = 80% utilization",
   },
 };
 

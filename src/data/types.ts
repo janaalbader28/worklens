@@ -26,16 +26,6 @@ export interface WorkloadBreakdown {
   other: number;
 }
 
-export interface UpcomingProject {
-  id: string;
-  name: string;
-  role: string;
-  priority: "High" | "Medium" | "Low";
-  deadline: string;
-  hoursPerWeek: number;
-  status: "On Track" | "At Risk" | "Delayed";
-}
-
 export interface UpcomingTicket {
   id: string;
   title: string;
@@ -59,21 +49,26 @@ export interface LeaveEvent {
   type: "Annual Leave" | "Public Holiday" | "Training" | "Sick Leave";
   start: string;
   end: string;
+  /** Missing on older/seeded records — treat as already approved (historical data).
+   * New leave requests submitted by an employee start out "Pending" until HR approves them. */
+  status?: "Approved" | "Pending";
 }
+
+export type EmployeeLevel = "Supervisor" | "Employee";
 
 export interface Employee {
   id: string;
   name: string;
-  title: string;
   department: Department;
+  /** One "Supervisor" per department is the default supervisor new hires in that
+   * department are linked to (see `getDepartmentSupervisor` in lib/hr.ts). */
+  level: EmployeeLevel;
   supervisorId: string | null;
   employeeIdNumber: string;
   /** Editable via the HR System's employee profile; falls back to a derived address when unset. */
   email?: string;
   /** Editable via the HR System's employee profile; falls back to a derived status when unset. */
   availabilityOverride?: "Available" | "Unavailable";
-  /** Editable via the HR System's employee profile; falls back to the department lead when unset. */
-  supervisorNameOverride?: string;
   skills: Skill[];
   knowledgeAreas: string[];
   workingSchedule: string;
@@ -82,7 +77,6 @@ export interface Employee {
   currentUtilization: number;
   futureCapacity: number;
   forecast8Week: number[];
-  upcomingProjects: UpcomingProject[];
   upcomingTickets: UpcomingTicket[];
   adhoc: AdhocItem[];
   leaveEvents: LeaveEvent[];

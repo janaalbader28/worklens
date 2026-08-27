@@ -18,13 +18,12 @@
 create table if not exists employees (
   id text primary key,
   name text not null,
-  title text not null,
   department text not null,
+  "level" text not null default 'Employee',
   "supervisorId" text,
   "employeeIdNumber" text,
   email text,
   "availabilityOverride" text,
-  "supervisorNameOverride" text,
   skills jsonb not null default '[]',
   "knowledgeAreas" jsonb not null default '[]',
   "workingSchedule" text,
@@ -49,6 +48,7 @@ create table if not exists tickets (
   priority text not null,
   "assignedUnit" text not null,
   "assignedEmployeeId" text,
+  "assignedEmployeeIds" jsonb not null default '[]',
   "raisedDate" text,
   "estimatedHours" numeric,
   "slaHours" numeric,
@@ -61,42 +61,44 @@ create table if not exists tickets (
   "updatedAt" timestamptz not null default now()
 );
 
-create table if not exists flow_projects (
-  id text primary key,
-  project text not null,
-  task text not null,
-  description text,
-  "taskDescription" text,
-  owner text,
-  status text not null,
-  priority text not null,
-  "assignedUnit" text not null,
-  "assignedEmployee" text,
-  "estimatedHours" numeric,
-  "startDate" text,
-  deadline text,
-  budget text,
-  milestones jsonb not null default '[]',
-  "createdAt" timestamptz not null default now(),
-  "updatedAt" timestamptz not null default now()
-);
+-- Migration for projects that already ran an earlier version of this file, before a
+-- ticket could be shared by 2 employees — adds "assignedEmployeeIds" (a list) and
+-- backfills it from the old single-assignee "assignedEmployeeId" column. The old
+-- column is left in place rather than dropped, since it may still hold historical
+-- data; the app no longer reads or writes it. Safe to re-run.
+alter table tickets add column if not exists "assignedEmployeeIds" jsonb not null default '[]';
+update tickets
+set "assignedEmployeeIds" = jsonb_build_array("assignedEmployeeId")
+where "assignedEmployeeId" is not null and "assignedEmployeeIds" = '[]'::jsonb;
 
-create table if not exists sdlc_activities (
-  id text primary key,
-  application text not null,
-  activity text not null,
-  description text,
-  stage text not null,
-  "assignedUnit" text not null,
-  "assignedEmployee" text,
-  "estimatedHours" numeric,
-  "startDate" text,
-  deadline text,
-  status text not null,
-  "relatedMilestone" text,
-  "createdAt" timestamptz not null default now(),
-  "updatedAt" timestamptz not null default now()
-);
+-- Migration for projects that already ran an earlier version of this file (the
+-- CREATE TABLE above only applies to a fresh install) — adds the "level" column
+-- if it's missing, backfills the six known department leads to "Supervisor", and
+-- links everyone else's supervisorId to their department's lead (previously
+-- everyone pointed at the placeholder "sup-001", which is why every department
+-- looked like it had the same — or no — supervisor). Safe to re-run.
+alter table employees add column if not exists "level" text not null default 'Employee';
+update employees set "level" = 'Employee' where "level" = 'Staff';
+update employees set "level" = 'Supervisor' where "level" = 'Manager';
+update employees set "level" = 'Supervisor'
+  where id in ('ahmed-al-hassan', 'saad-al-dawsari', 'fatimah-al-mutairi', 'khalid-al-otaibi', 'abdullah-al-harbi', 'yousef-al-ghamdi');
+
+-- The "title" (job position) column has been removed from the app entirely —
+-- drop the NOT NULL constraint so it stops rejecting new employee inserts on
+-- projects that ran an earlier version of this file. The column itself is
+-- left in place rather than dropped, since it may still hold historical data.
+alter table employees alter column title drop not null;
+
+update employees set "supervisorId" = 'ahmed-al-hassan' where department = 'Data & Analytics' and id <> 'ahmed-al-hassan';
+update employees set "supervisorId" = 'saad-al-dawsari' where department = 'Digital Solutions' and id <> 'saad-al-dawsari';
+update employees set "supervisorId" = 'fatimah-al-mutairi' where department = 'Business Systems' and id <> 'fatimah-al-mutairi';
+update employees set "supervisorId" = 'khalid-al-otaibi' where department = 'Cybersecurity' and id <> 'khalid-al-otaibi';
+update employees set "supervisorId" = 'abdullah-al-harbi' where department = 'IT Service Support' and id <> 'abdullah-al-harbi';
+update employees set "supervisorId" = 'yousef-al-ghamdi' where department = 'Applications' and id <> 'yousef-al-ghamdi';
+
+-- Supervisors are the top of their own department's chain — there is no more
+-- top-level "sup-001" placeholder person above them, so null out their supervisorId.
+update employees set "supervisorId" = null where "level" = 'Supervisor';
 
 create table if not exists handover_requests (
   id text primary key,
@@ -107,18 +109,72 @@ create table if not exists handover_requests (
   "affectedWork" jsonb not null default '[]',
   status text not null,
   "submittedAt" text,
+  "leaveType" text not null default 'Annual Leave',
   "createdAt" timestamptz not null default now()
 );
+
+-- Migration for projects that already ran an earlier version of this file, before
+-- leaveType existed on handover_requests (every request now doubles as a leave
+-- request — approving it on the supervisor's Handover page adds a matching entry to
+-- the employee's leaveEvents). Safe to re-run.
+alter table handover_requests add column if not exists "leaveType" text not null default 'Annual Leave';
 
 create table if not exists work_log_entries (
   "employeeId" text not null,
   "itemId" text not null,
   "workflowStatus" text,
-  notes jsonb not null default '[]',
-  messages jsonb not null default '[]',
+  progress integer,
+  comments jsonb not null default '[]',
   "updatedAt" timestamptz not null default now(),
   primary key ("employeeId", "itemId")
 );
+
+-- Migration for projects that already ran an earlier version of this file, before
+-- "progress" existed on work_log_entries — the Supervisor Dashboard's capacity
+-- calculations use this (0-100, employee-logged) to compute remaining work hours per
+-- item. Safe to re-run.
+alter table work_log_entries add column if not exists progress integer;
+
+-- Migration for projects that already ran an earlier version of this file — the old
+-- "notes" (employee-private) and "messages" (employee-to-supervisor) columns are
+-- replaced by a single "comments" thread (each entry tagged with its author) that both
+-- the employee and their supervisor read and write. Existing notes/messages are merged
+-- into it once, in chronological append order (notes first, then messages, matching how
+-- they were previously always rendered); the old columns are left in place afterwards
+-- rather than dropped, since they may still hold historical data. Safe to re-run.
+alter table work_log_entries add column if not exists comments jsonb not null default '[]';
+update work_log_entries
+set comments = (
+  select coalesce(jsonb_agg(elem), '[]'::jsonb)
+  from (
+    select jsonb_build_object('text', n->>'text', 'at', n->>'at', 'author', 'Employee') as elem
+    from jsonb_array_elements(coalesce(notes, '[]'::jsonb)) as n
+    union all
+    select jsonb_build_object('text', m->>'text', 'at', m->>'at', 'author', 'Employee') as elem
+    from jsonb_array_elements(coalesce(messages, '[]'::jsonb)) as m
+  ) merged
+)
+where comments = '[]'::jsonb and (jsonb_array_length(coalesce(notes, '[]'::jsonb)) > 0 or jsonb_array_length(coalesce(messages, '[]'::jsonb)) > 0);
+
+create table if not exists calendar_events (
+  id text primary key,
+  "authorId" text not null,
+  "authorName" text not null,
+  "authorRole" text not null,
+  department text not null,
+  title text not null,
+  date text not null,
+  priority text not null default 'Medium',
+  "itemType" text not null default 'Task',
+  note text not null default '',
+  "createdAt" text not null
+);
+
+-- Migration for projects that already ran an earlier version of this file, before
+-- priority/type/note existed on calendar_events. Safe to re-run.
+alter table calendar_events add column if not exists priority text not null default 'Medium';
+alter table calendar_events add column if not exists "itemType" text not null default 'Task';
+alter table calendar_events add column if not exists note text not null default '';
 
 -- ============================================================================
 -- Row Level Security
@@ -132,16 +188,15 @@ create table if not exists work_log_entries (
 
 alter table employees enable row level security;
 alter table tickets enable row level security;
-alter table flow_projects enable row level security;
-alter table sdlc_activities enable row level security;
 alter table handover_requests enable row level security;
 alter table work_log_entries enable row level security;
+alter table calendar_events enable row level security;
 
 -- RLS policies alone aren't enough — Postgres also requires the base table-level
 -- privilege grant. New tables don't always inherit Supabase's default grants for
 -- anon/authenticated, which surfaces as "permission denied for table X" even with
 -- correct RLS policies in place. Grant explicitly so this isn't environment-dependent.
-grant select, insert, update on employees, tickets, flow_projects, sdlc_activities, handover_requests, work_log_entries to anon, authenticated;
+grant select, insert, update on employees, tickets, handover_requests, work_log_entries, calendar_events to anon, authenticated;
 
 drop policy if exists "anon select" on employees;
 drop policy if exists "anon insert" on employees;
@@ -157,20 +212,6 @@ create policy "anon select" on tickets for select to anon, authenticated using (
 create policy "anon insert" on tickets for insert to anon, authenticated with check (true);
 create policy "anon update" on tickets for update to anon, authenticated using (true) with check (true);
 
-drop policy if exists "anon select" on flow_projects;
-drop policy if exists "anon insert" on flow_projects;
-drop policy if exists "anon update" on flow_projects;
-create policy "anon select" on flow_projects for select to anon, authenticated using (true);
-create policy "anon insert" on flow_projects for insert to anon, authenticated with check (true);
-create policy "anon update" on flow_projects for update to anon, authenticated using (true) with check (true);
-
-drop policy if exists "anon select" on sdlc_activities;
-drop policy if exists "anon insert" on sdlc_activities;
-drop policy if exists "anon update" on sdlc_activities;
-create policy "anon select" on sdlc_activities for select to anon, authenticated using (true);
-create policy "anon insert" on sdlc_activities for insert to anon, authenticated with check (true);
-create policy "anon update" on sdlc_activities for update to anon, authenticated using (true) with check (true);
-
 drop policy if exists "anon select" on handover_requests;
 drop policy if exists "anon insert" on handover_requests;
 drop policy if exists "anon update" on handover_requests;
@@ -185,13 +226,32 @@ create policy "anon select" on work_log_entries for select to anon, authenticate
 create policy "anon insert" on work_log_entries for insert to anon, authenticated with check (true);
 create policy "anon update" on work_log_entries for update to anon, authenticated using (true) with check (true);
 
+-- calendar_events rows are meant to be private to whoever created them — the app
+-- filters that client-side (same as every other "who can see what" rule in this
+-- prototype, since there's no real per-user login to enforce it at the database level).
+drop policy if exists "anon select" on calendar_events;
+drop policy if exists "anon insert" on calendar_events;
+drop policy if exists "anon update" on calendar_events;
+create policy "anon select" on calendar_events for select to anon, authenticated using (true);
+create policy "anon insert" on calendar_events for insert to anon, authenticated with check (true);
+create policy "anon update" on calendar_events for update to anon, authenticated using (true) with check (true);
+
 -- ============================================================================
 -- Realtime — lets other devices see writes without a manual refresh.
 -- ============================================================================
 
 do $$
 begin
-  alter publication supabase_realtime add table employees, tickets, flow_projects, sdlc_activities, handover_requests, work_log_entries;
+  alter publication supabase_realtime add table employees, tickets, handover_requests, work_log_entries, calendar_events;
 exception
   when duplicate_object then null;
 end $$;
+
+-- ============================================================================
+-- Cleanup — FLOW and SDLC were removed from the app. If your project already
+-- ran an earlier version of this file, the `flow_projects` and `sdlc_activities`
+-- tables still exist with their data. Uncomment and run this once to drop them
+-- (irreversible — only run if you're sure you don't need that data):
+--
+-- drop table if exists flow_projects;
+-- drop table if exists sdlc_activities;

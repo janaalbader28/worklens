@@ -7,13 +7,15 @@
 import type { Department } from "./types";
 
 export type TicketStatus = "Open" | "In Progress" | "On Hold" | "Resolved" | "Closed";
+export const TICKET_STATUS_OPTIONS: TicketStatus[] = ["Open", "In Progress", "On Hold", "Resolved", "Closed"];
+export type TicketPriority = "High" | "Medium" | "Low";
 
 export interface Ticket {
   id: string;
   title: string;
   description: string;
   status: TicketStatus;
-  priority: "High" | "Medium" | "Low";
+  priority: TicketPriority;
   assignedUnit: Department;
   raisedDate: string;
   estimatedHours: number;
@@ -40,7 +42,7 @@ export const TICKETS: Ticket[] = [
     slaHours: 8,
     expectedResolutionDate: "25 Aug 2026",
     resolvedDate: null,
-    createdBy: "Nasser Al-Fahad",
+    createdBy: "Reem Al-Shammari",
     assignedBy: "Service Desk Triage",
   },
   {
@@ -235,7 +237,7 @@ export const TICKETS: Ticket[] = [
     raisedDate: "12 Aug 2026",
     estimatedHours: 2,
     slaHours: 72,
-    expectedResolutionDate: "15 Aug 2026",
+    expectedResolutionDate: "13 Aug 2026",
     resolvedDate: "14 Aug 2026",
     createdBy: "Hessa Al-Mansour",
     assignedBy: "Service Desk Triage",
@@ -250,7 +252,7 @@ export const TICKETS: Ticket[] = [
     raisedDate: "19 Aug 2026",
     estimatedHours: 4,
     slaHours: 72,
-    expectedResolutionDate: "29 Aug 2026",
+    expectedResolutionDate: "27 Aug 2026",
     resolvedDate: null,
     createdBy: "Omar Al-Rashid",
     assignedBy: "Service Desk Triage",
@@ -280,7 +282,7 @@ export const TICKETS: Ticket[] = [
     raisedDate: "22 Aug 2026",
     estimatedHours: 6,
     slaHours: 72,
-    expectedResolutionDate: "29 Aug 2026",
+    expectedResolutionDate: "27 Aug 2026",
     resolvedDate: null,
     createdBy: "Hessa Al-Mansour",
     assignedBy: "Service Desk Triage",
@@ -325,7 +327,7 @@ export const TICKETS: Ticket[] = [
     raisedDate: "25 Aug 2026",
     estimatedHours: 3,
     slaHours: 72,
-    expectedResolutionDate: "29 Aug 2026",
+    expectedResolutionDate: "27 Aug 2026",
     resolvedDate: null,
     createdBy: "Saad Al-Dawsari",
     assignedBy: "Service Desk Triage",

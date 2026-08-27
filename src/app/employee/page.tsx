@@ -12,14 +12,14 @@ import { useEmployees } from "@/store/employees-store";
 export default function EmployeeDashboardPage() {
   const { employeeId } = useEmployeeSession();
   const { employees } = useEmployees();
-  const me = employees.find((e) => e.id === employeeId) ?? employees.find((e) => e.id === "sara-al-qahtani")!;
+  const me = employees.find((e) => e.id === employeeId) ?? employees[0];
   const firstName = me.name.split(" ")[0];
   const avail = availableCapacity(me.currentUtilization);
   const availHoursNextWeek = Math.round((avail / 100) * me.weeklyHours);
   const week4 = me.forecast8Week[3] ?? me.currentUtilization;
 
   const workloadRows = [
-    { label: "Project Work", hours: me.workload.project },
+    { label: "Planned Work", hours: me.workload.project },
     { label: "Operational Support", hours: me.workload.operational },
     { label: "Ad-hoc", hours: me.workload.adhoc },
     { label: "Other", hours: me.workload.other },
@@ -41,9 +41,9 @@ export default function EmployeeDashboardPage() {
           </div>
         </Card>
         <Card className="flex flex-col justify-center gap-3 py-6">
-          <Metric label="Active Tasks" value={String(me.upcomingProjects.length + me.upcomingTickets.length)} />
-          <Metric label="Projects" value={String(me.upcomingProjects.length)} />
+          <Metric label="Active Tasks" value={String(me.upcomingTickets.length + me.adhoc.length)} />
           <Metric label="Tickets" value={String(me.upcomingTickets.length)} />
+          <Metric label="Ad-hoc" value={String(me.adhoc.length)} />
         </Card>
         <Card className="flex flex-col items-center justify-center text-center py-6">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-secondary">Available Capacity</p>

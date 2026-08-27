@@ -15,28 +15,27 @@ export interface UnitSummary {
 }
 
 export function getEmployeeWorkCounts(employee: Employee) {
-  const projects = employee.upcomingProjects.length;
   const tickets = employee.upcomingTickets.length;
-  return { projects, tickets, activeTasks: projects + tickets };
+  const adhoc = employee.adhoc.length;
+  return { tickets, adhoc, activeTasks: tickets + adhoc };
 }
 
 export interface EmployeeTask {
   key: string;
-  type: "Project" | "Ticket" | "Ad-hoc";
+  type: "Ticket" | "Ad-hoc";
   name: string;
   priority: "High" | "Medium" | "Low";
   deadline: string;
 }
 
-/** Every task currently on an employee's plate — seed projects/tickets/ad-hoc plus any
- * ticket assigned to them via the WorkLens Work queue (the tickets-store bridge). */
+/** Every task currently on an employee's plate — seed tickets/ad-hoc plus any ticket
+ * assigned to them via the WorkLens Work queue (the tickets-store bridge). */
 export function getEmployeeTasks(employee: Employee, tickets: AssignedTicket[]): EmployeeTask[] {
   return [
-    ...employee.upcomingProjects.map((p) => ({ key: `p-${p.id}`, type: "Project" as const, name: p.name, priority: p.priority, deadline: p.deadline })),
     ...employee.upcomingTickets.map((t) => ({ key: `t-${t.id}`, type: "Ticket" as const, name: t.title, priority: t.priority, deadline: t.deadline })),
     ...employee.adhoc.map((a) => ({ key: `a-${a.id}`, type: "Ad-hoc" as const, name: a.name, priority: a.priority, deadline: a.deadline })),
     ...tickets
-      .filter((t) => t.assignedEmployeeId === employee.id)
+      .filter((t) => (t.assignedEmployeeIds ?? []).includes(employee.id))
       .map((t) => ({ key: `at-${t.id}`, type: "Ticket" as const, name: t.title, priority: t.priority, deadline: t.expectedResolutionDate })),
   ];
 }
@@ -58,7 +57,7 @@ export function computeUnitSummary(unit: Department, employees: Employee[], tick
     const status = getCapacityStatus(e.currentUtilization).key;
     if (status === "atRisk") atRiskCount += 1;
     if (status === "overloaded" || status === "critical") overloadedCount += 1;
-    activeTasksCount += e.upcomingProjects.length + e.upcomingTickets.length;
+    activeTasksCount += e.upcomingTickets.length + e.adhoc.length;
   });
 
   const openTicketsCount = tickets.filter(

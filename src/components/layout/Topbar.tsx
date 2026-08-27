@@ -1,7 +1,5 @@
 "use client";
 
-import { RoleSwitcher } from "./RoleSwitcher";
-import { SUPERVISOR } from "@/data/employees";
 import { Logo } from "@/components/ui/Logo";
 import { useSupervisorSession } from "@/store/session-store";
 
@@ -14,8 +12,8 @@ export function Topbar({
   personaName?: string;
   personaTitle?: string;
 }) {
-  const name = personaName ?? SUPERVISOR.name;
-  const title = personaTitle ?? SUPERVISOR.title;
+  const name = personaName ?? "—";
+  const title = personaTitle ?? "";
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -32,16 +30,13 @@ export function Topbar({
         {role === "supervisor" ? <SupervisorWorkspaceLabel /> : <p className="text-xs text-ink-muted">Employee workspace</p>}
       </div>
 
-      <div className="flex items-center gap-3">
-        <RoleSwitcher role={role} />
-        <div className="flex items-center gap-2.5 pl-3 border-l border-border">
-          <div className="h-8 w-8 rounded-full bg-brand-800 text-white text-xs font-semibold flex items-center justify-center shrink-0">
-            {initials}
-          </div>
-          <div className="hidden sm:block leading-tight">
-            <p className="text-sm font-medium text-ink">{name}</p>
-            <p className="text-xs text-ink-muted">{title}</p>
-          </div>
+      <div className="flex items-center gap-2.5">
+        <div className="h-8 w-8 rounded-full bg-brand-800 text-white text-xs font-semibold flex items-center justify-center shrink-0">
+          {initials}
+        </div>
+        <div className="hidden sm:block leading-tight">
+          <p className="text-sm font-medium text-ink">{name}</p>
+          <p className="text-xs text-ink-muted">{title}</p>
         </div>
       </div>
     </header>

@@ -1,5 +1,4 @@
 import type { Employee } from "@/data/types";
-import { DEFAULT_ALLOCATION_SCENARIOS, DEFAULT_CANDIDATES, DEFAULT_SCENARIO_PROJECT } from "@/data/scenarios";
 import { getCapacityStatus } from "@/lib/capacity";
 
 export interface ScenarioInput {
@@ -25,14 +24,6 @@ export interface AllocationScenario {
   assignees: { employee: Employee; projected: number }[];
   overallProjected: number;
   recommended: boolean;
-}
-
-function isDefaultProject(input: ScenarioInput): boolean {
-  return (
-    input.name.trim().toLowerCase() === DEFAULT_SCENARIO_PROJECT.name.toLowerCase() &&
-    input.requiredSkills.length === DEFAULT_SCENARIO_PROJECT.requiredSkills.length &&
-    input.requiredSkills.every((s) => DEFAULT_SCENARIO_PROJECT.requiredSkills.includes(s))
-  );
 }
 
 export function computeSkillMatch(employee: Employee, requiredSkills: string[]): number {
@@ -61,26 +52,6 @@ export function runScenario(
   candidates: ScenarioCandidate[];
   allocationScenarios: AllocationScenario[];
 } {
-  const getEmployeeById = (id: string) => employees.find((e) => e.id === id);
-
-  if (isDefaultProject(input)) {
-    const candidates: ScenarioCandidate[] = DEFAULT_CANDIDATES.map((c) => ({
-      employee: getEmployeeById(c.employeeId)!,
-      skillMatch: c.skillMatch,
-      currentUtilization: c.currentUtilization,
-      projectedUtilization: c.projectedUtilization,
-    }));
-    const allocationScenarios: AllocationScenario[] = DEFAULT_ALLOCATION_SCENARIOS.map((s) => ({
-      id: s.id,
-      label: s.label,
-      description: s.description,
-      assignees: s.assignees.map((a) => ({ employee: getEmployeeById(a.employeeId)!, projected: a.projected })),
-      overallProjected: s.overallProjected,
-      recommended: s.recommended,
-    }));
-    return { candidates, allocationScenarios };
-  }
-
   const hoursPerWeek = input.estimatedHours / Math.max(1, input.durationWeeks);
   const ranked = rankCandidates(employees, input.requiredSkills, 3);
 

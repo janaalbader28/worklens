@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PriorityBadge } from "@/components/ui/StatusBadge";
 import { SourceSystemNotice } from "@/components/systems/SourceSystemHeader";
@@ -25,6 +26,10 @@ export default function TicketDetailPage() {
   if (!ticket) {
     return (
       <SystemPageShell>
+        <Link href="/systems/tickets" className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">
+          <ArrowLeft className="h-4 w-4" />
+          Back to IT Ticket System
+        </Link>
         <p className="text-sm text-ink-muted">Incident not found.</p>
       </SystemPageShell>
     );
@@ -49,6 +54,11 @@ export default function TicketDetailPage() {
 
   return (
     <SystemPageShell>
+      <Link href="/systems/tickets" className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink">
+        <ArrowLeft className="h-4 w-4" />
+        Back to IT Ticket System
+      </Link>
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-ink-muted">{ticket.id}</p>

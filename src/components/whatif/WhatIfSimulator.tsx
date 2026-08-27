@@ -1,22 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FlaskConical, Loader2, CheckCircle2, Info } from "lucide-react";
+import { FlaskConical, Loader2, CheckCircle2, Info, Plus } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { AiTag } from "@/components/ui/AiTag";
 import { CapacityBar } from "@/components/ui/ProgressBar";
 import { getCapacityStatus } from "@/lib/capacity";
 import { runScenario, type ScenarioInput } from "@/lib/simulate";
 import { DEFAULT_SCENARIO_PROJECT, RECOMMENDATION_REASONS } from "@/data/scenarios";
-import { useEmployees } from "@/store/employees-store";
+import { formatDisplayDate, toInputDateValue } from "@/lib/date";
+import type { Employee } from "@/data/types";
 
 const PRIORITIES: ScenarioInput["priority"][] = ["High", "Medium", "Low"];
 
-export function WhatIfSimulator() {
-  const { employees } = useEmployees();
+export function WhatIfSimulator({ employees }: { employees: Employee[] }) {
   const skillPool = useMemo(
     () => Array.from(new Set(employees.flatMap((e) => e.skills.map((s) => s.name)))).sort(),
     [employees]
+  );
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
+  const [newSkillDraft, setNewSkillDraft] = useState("");
+  const allSkillOptions = useMemo(
+    () => Array.from(new Set([...skillPool, ...customSkills])).sort(),
+    [skillPool, customSkills]
   );
   const [form, setForm] = useState<ScenarioInput>({
     name: DEFAULT_SCENARIO_PROJECT.name,
@@ -28,7 +34,6 @@ export function WhatIfSimulator() {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof runScenario> | null>(null);
-  const [applied, setApplied] = useState(false);
 
   function toggleSkill(skill: string) {
     setForm((f) => ({
@@ -39,10 +44,19 @@ export function WhatIfSimulator() {
     }));
   }
 
+  function addNewSkill() {
+    const name = newSkillDraft.trim();
+    if (!name) return;
+    if (!allSkillOptions.some((s) => s.toLowerCase() === name.toLowerCase())) {
+      setCustomSkills((prev) => [...prev, name]);
+    }
+    setForm((f) => (f.requiredSkills.some((s) => s.toLowerCase() === name.toLowerCase()) ? f : { ...f, requiredSkills: [...f.requiredSkills, name] }));
+    setNewSkillDraft("");
+  }
+
   function handleSimulate() {
     setLoading(true);
     setResult(null);
-    setApplied(false);
     window.setTimeout(() => {
       setResult(runScenario(employees, form));
       setLoading(false);
@@ -68,8 +82,14 @@ export function WhatIfSimulator() {
           </Field>
           <Field label="Start Date">
             <input
-              value={form.startDate}
-              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+              type="date"
+              value={toInputDateValue(form.startDate)}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  startDate: e.target.value ? formatDisplayDate(new Date(`${e.target.value}T00:00:00`)) : f.startDate,
+                }))
+              }
               className="input"
             />
           </Field>
@@ -110,7 +130,7 @@ export function WhatIfSimulator() {
               Required Skills
             </label>
             <div className="flex flex-wrap gap-2">
-              {skillPool.map((skill) => {
+              {allSkillOptions.map((skill) => {
                 const active = form.requiredSkills.includes(skill);
                 return (
                   <button
@@ -127,6 +147,28 @@ export function WhatIfSimulator() {
                   </button>
                 );
               })}
+            </div>
+            <div className="mt-2.5 flex items-center gap-2">
+              <input
+                value={newSkillDraft}
+                onChange={(e) => setNewSkillDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addNewSkill();
+                  }
+                }}
+                placeholder="Add a new skill…"
+                className="input max-w-[220px]"
+              />
+              <button
+                type="button"
+                onClick={addNewSkill}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-brand-50"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                Add Skill
+              </button>
             </div>
           </div>
         </div>
@@ -155,7 +197,7 @@ export function WhatIfSimulator() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <h2 className="text-lg font-semibold text-ink tracking-tight">Scenario Analysis</h2>
-              <span className="inline-flex items-center rounded-full border border-accent-violet/30 bg-accent-violet-bg px-2.5 py-1 text-xs font-medium text-accent-violet">
+              <span className="inline-flex items-center rounded-full border border-accent-green/30 bg-accent-green-bg px-2.5 py-1 text-xs font-medium text-accent-green">
                 Simulated Scenario
               </span>
             </div>
@@ -182,7 +224,7 @@ export function WhatIfSimulator() {
                       <tr key={c.employee.id} className="border-b border-border last:border-0">
                         <td className="px-3 py-3">
                           <p className="font-medium text-ink">{c.employee.name}</p>
-                          <p className="text-xs text-ink-muted">{c.employee.title}</p>
+                          <p className="text-xs text-ink-muted">{c.employee.department}</p>
                         </td>
                         <td className="px-3 py-3 tabular">{c.skillMatch}%</td>
                         <td className="px-3 py-3 w-36">
@@ -276,32 +318,14 @@ export function WhatIfSimulator() {
                 </p>
               </div>
 
-              {applied ? (
-                <div className="mt-5 flex items-center gap-2 rounded-lg border border-[var(--status-good-border)] bg-[var(--status-good-bg)] px-3.5 py-3">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--status-good)]" />
-                  <p className="text-xs font-medium text-[var(--status-good)]">
-                    Allocation applied (simulated). No real assignment has been made outside this prototype.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setApplied(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
-                  >
-                    Apply Allocation
-                  </button>
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setApplied(false);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink hover:bg-brand-50"
-                  >
-                    Modify Scenario
-                  </button>
-                </div>
-              )}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  onClick={() => setResult(null)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink hover:bg-brand-50"
+                >
+                  Modify Scenario
+                </button>
+              </div>
             </Card>
           )}
         </div>
@@ -318,3 +342,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+

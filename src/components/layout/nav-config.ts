@@ -28,6 +28,7 @@ export const SUPERVISOR_NAV: NavItem[] = [
 export const EMPLOYEE_NAV: NavItem[] = [
   { label: "My Dashboard", href: "/employee", icon: LayoutDashboard },
   { label: "My Work", href: "/employee/work", icon: Briefcase },
+  { label: "My Calendar", href: "/employee/calendar", icon: CalendarRange },
   { label: "My Skills", href: "/employee/skills", icon: Award },
   { label: "Handover Requests", href: "/employee/handover-requests", icon: Repeat2 },
 ];
